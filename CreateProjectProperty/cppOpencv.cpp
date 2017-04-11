@@ -551,7 +551,8 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 	{
 		head_upper_shoulder = Point(left_cheek.x - distance_from_face_to_shouldersample, left_cheek.y);
 	}
-	else {
+	else 
+	{
 		head_upper_shoulder = Point(right_cheek.x + distance_from_face_to_shouldersample, right_cheek.y);
 	}
 	
@@ -560,7 +561,6 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 	
 
 	cv::vector<cv::vector<Point>> point_collection;
-	cv::vector<cv::vector<Point>> possible_lines;
 
 	//Take points on shoulder_sample follow "checking_block" and build LineIterator from these point to symmetric_point
 	for (int j = 0; abs(checking_block*j*cos(radian)) < range_of_shoulder_sample; j++) {
@@ -603,26 +603,34 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 	}
 
 	//take potential point for shoulder line by checking angle of these line
+
+	int angle_for_arm = -75;
+	if (leftHandSide)
+		angle_for_arm = -105;
+
+	//check ki trc khi xoa
 	for (int a = 0; a < point_collection.size() - 1; a++) {
 		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
 		{
 			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
 			{
 				//Check difference of angle
-				cv::vector<Point> point_line;
-				if (abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle) <= 20)
+				if (abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle) <= 20 || abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle_for_arm) <= 20)
 				{
 					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], red, 3, 8, 0);
-					point_line.push_back(point_collection[a][b1]);
-					point_line.push_back(point_collection[a + 1][b2]);
 				}
 			}
 		}
 	}
+	cv::vector<cv::vector<Point>> possible_lines;
+	cv::vector<cv::vector<Point>> possible_lines_for_arm;
+
+
 
 	for (int i = 0; i < point_collection.size(); i++) {
 		for (int j = 0; j < point_collection[i].size(); j++) {
 			cv::vector<Point> path = findPath(j, i, point_collection, angle);
+			cv::vector<Point> path_for_arm = findPath(j, i, point_collection, angle_for_arm);
 
 			if (possible_lines.empty() || path.size() > possible_lines.back().size())
 			{
@@ -630,6 +638,12 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 				//cout << "A new max line" << endl;
 			}
 			//cout << endl;
+
+			if (possible_lines_for_arm.empty() || path_for_arm.size() > possible_lines_for_arm.back().size())
+			{
+				possible_lines_for_arm.push_back(path_for_arm);
+				//cout << "A new max line" << endl;
+			}
 		}
 	}
 
@@ -640,6 +654,13 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 		line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
 	}
 
+	cv::vector<Point> shoulder_line_for_arm = possible_lines_for_arm.back();
+
+	for (int i = 0; i < shoulder_line_for_arm.size() - 1; i++)
+	{
+		line(shoulder_detection_image, shoulder_line_for_arm[i], shoulder_line_for_arm[i + 1], color, 5, 8, 0);
+	}
+
 }
 
 
@@ -648,10 +669,15 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame) {
 	cv::resizeWindow("Erosion After Canny", 282, 502);
 	cv::namedWindow("Canny Only", CV_WINDOW_NORMAL);
 	cv::resizeWindow("Canny Only", 282, 502);
-	cv::namedWindow("Source", CV_WINDOW_NORMAL);
-	cv::resizeWindow("Source", 530, 700);
-	cv::namedWindow("Testing", CV_WINDOW_NORMAL);
-	cv::resizeWindow("Testing", 530, 700);
+	cv::namedWindow("Source_NoBlur_Check", CV_WINDOW_NORMAL);
+	cv::resizeWindow("Source_NoBlur_Check", 530, 700);
+	cv::namedWindow("NoBlur_NoCheck", CV_WINDOW_NORMAL);
+	cv::resizeWindow("NoBlur_NoCheck", 530, 700);
+
+	cv::namedWindow("Blur_Check", CV_WINDOW_NORMAL);
+	cv::resizeWindow("Blur_Check", 530, 700);
+	cv::namedWindow("Blur_NoCheck", CV_WINDOW_NORMAL);
+	cv::resizeWindow("Blur_NoCheck", 530, 700);
 
 	int blurIndex = 7;
 
@@ -757,7 +783,9 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame) {
 
 	//-----------------------------left shoulder---------------------------
 
-	Mat face_detection_frame_clone = face_detection_frame.clone();
+	Mat face_detection_frame_NoBlur_NoCheck = face_detection_frame.clone();
+	Mat face_detection_frame_Blur_Check = face_detection_frame.clone();
+	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
 	double angle_left = -150;
 	//double radian_left = angle_left * CV_PI / 180.0;
 	//int length = 500; //500 is default
@@ -767,11 +795,11 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame) {
 	//Point end_left_shoulder = Point(head_left_shoulder.x + length*cos(radian_left), head_left_shoulder.y - length*sin(radian_left));
 	//leftRefinedInput = getFeatureFromUserInput(face_detection_frame, head_left_shoulder, end_left_shoulder, angle_left, checking_block);
 	
-	detectShoulderLine(face_detection_frame, CannyWithoutBlurAndMorphology, true, angle_left, green, false);
-	detectShoulderLine(face_detection_frame, detected_edges, true, angle_left, blue, false);
+	detectShoulderLine(face_detection_frame_NoBlur_NoCheck, CannyWithoutBlurAndMorphology, true, angle_left, green, false);
+	detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, true, angle_left, blue, false);
 	
-	detectShoulderLine(face_detection_frame_clone, CannyWithoutBlurAndMorphology, true, angle_left, green, true);
-	detectShoulderLine(face_detection_frame_clone, detected_edges, true, angle_left, blue, true);
+	detectShoulderLine(face_detection_frame, CannyWithoutBlurAndMorphology, true, angle_left, green, true);
+	detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, true, angle_left, blue, true);
 
 	//-----------------------------right shoulder---------------------------
 	int angle_right = -30;
@@ -779,15 +807,17 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame) {
 	//Point head_right_shoulder = Point(right_cheek.x + distance_from_face_to_shouldersample, right_cheek.y);
 	//Point end_right_shoulder = Point(head_right_shoulder.x + length*cos(radian_right), head_right_shoulder.y - length*sin(radian_right));
 	//rightRefinedInput = getFeatureFromUserInput(face_detection_frame, head_right_shoulder, end_right_shoulder, angle_right, checking_block);
-	detectShoulderLine(face_detection_frame, CannyWithoutBlurAndMorphology, false, angle_right, green, false);
-	detectShoulderLine(face_detection_frame, detected_edges, false, angle_right, blue, false);
+	detectShoulderLine(face_detection_frame_NoBlur_NoCheck, CannyWithoutBlurAndMorphology, false, angle_right, green, false);
+	detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, false, angle_right, blue, false);
 	
-	detectShoulderLine(face_detection_frame_clone, CannyWithoutBlurAndMorphology, false, angle_right, green, true);
-	detectShoulderLine(face_detection_frame_clone, detected_edges, false, angle_right, blue, true);
+	detectShoulderLine(face_detection_frame, CannyWithoutBlurAndMorphology, false, angle_right, green, true);
+	detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, false, angle_right, blue, true);
 
 	cv::imshow("Erosion After Canny", detected_edges);
-	cv::imshow("Source", face_detection_frame);
-	cv::imshow("Testing", face_detection_frame_clone);
+	cv::imshow("Source_NoBlur_Check", face_detection_frame);
+	cv::imshow("NoBlur_NoCheck", face_detection_frame_NoBlur_NoCheck);
+	cv::imshow("Blur_Check", face_detection_frame_Blur_Check);
+	cv::imshow("Blur_NoCheck", face_detection_frame_Blur_NoCheck);
 
 	//return face_detection_frame
 	frame = Mat(face_detection_frame);
@@ -875,13 +905,21 @@ cv::vector<Point> MYcppGui::findPath(int index, int index_line, cv::vector<cv::v
 	}
 
 	cv::vector<Point> new_point_line;
+	cv::vector<Point> tmp_new_point_line;
+
 	for (int i = 0; i < point_collection[index_line + 1].size(); i++)
 	{
 		//check angle
 		if (abs(Angle(point_collection[index_line][index], point_collection[index_line + 1][i]) - angle) <= 20) {
-			new_point_line = findPath(i, index_line + 1, point_collection, angle);
+			tmp_new_point_line = findPath(i, index_line + 1, point_collection, angle);
 		}
-		new_point_line.push_back(point_collection[index_line][index]);
+		tmp_new_point_line.push_back(point_collection[index_line][index]);
+
+		if (new_point_line.empty() || tmp_new_point_line.size() > new_point_line.size())
+		{
+			new_point_line = tmp_new_point_line;
+		}
+		tmp_new_point_line.clear();
 	}
 	return new_point_line;
 }
