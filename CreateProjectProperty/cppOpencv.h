@@ -32,6 +32,7 @@ static Scalar green = Scalar(0, 255, 0);
 static Scalar red = Scalar(0, 0, 255);
 static Scalar black = Scalar(0, 0, 0);
 
+double EuclideanDistance(Point p1, Point p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
 double Angle(Point start, Point end);
 float FindY_LineEquationThroughTwoPoint(float x_, Point p1, Point p2);
@@ -42,9 +43,8 @@ public:
 	~MYcppGui();
 
 	int myCppLoadAndShowRGB(string fileName);
-	Mat face_detection_dlib(string fileName);
 	void MYcppGui::VideoProcessing(string fileName);
-	void MYcppGui::ImageProcessing(Mat &frame);
+	//void MYcppGui::ImageProcessing(Mat &frame);
 	void MYcppGui::ImageProcessing_WithUserInput(Mat &frame);
 	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point> userInput);
 
@@ -52,7 +52,7 @@ public:
 	void MYcppGui::CannyProcessing(Mat image, OutputArray edges);
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat frame);
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
-	void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
+	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
 	void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor);
 
 	cv::vector<Point> findPath(int index, int index_line, cv::vector<cv::vector<Point>> point_collection, double angle);
@@ -82,4 +82,5 @@ private:
 	Point chin = NULL;
 	Point top_nose = NULL;
 	Point symmetric_point = NULL;
+	Point upper_symmetric_point = NULL;
 };
