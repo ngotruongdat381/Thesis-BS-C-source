@@ -24,34 +24,43 @@ int main() {
 	string pathUserInput = "D:\\605\\Source code\\UserInput\\input_";
 	string pathData = "D:\\605\\Source code\\dataset\\train_";
 	
+	int n;
+	bool image_version;
+
+	cout << "0: Image | 1: Video : ";
+	cin >> n;
+	if (n = 0)
+		image_version = true;
+	else
+		image_version = false;
+
 	string fileName;
 	cout << "File name: ";
+	cin.ignore();
 	getline(cin, fileName);
 
 	if (fileName == "")
 		fileName = "02";
 
 	pathUserInput = pathUserInput + fileName + ".txt";
-	
-	//for image
-	//pathData = pathData + fileName + ".jpg";
-
-	//for video version
-	pathData = pathData + "video_" + fileName + ".avi";
-
 	userInput = readUserInput(pathUserInput);
 	MYcppGui *myGui = new MYcppGui();
 	myGui->AddUserInput(userInput);
 
-	//Load an image
-	//frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
-	//myGui->ImageProcessing_WithUserInput(frame, true);
-	
-	//load video
-	myGui->VideoProcessing(pathData);
+	//for image
+	if (image_version)
+	{
+		pathData = pathData + fileName + ".jpg";
+		frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
+		myGui->ImageProcessing_WithUserInput(frame, true);
+	}
+	//for video version
+	else	
+	{
+		pathData = pathData + "video_" + fileName + ".avi";
+		myGui->VideoProcessing(pathData);
+	}
 
-	//frame = myGui->ImageProcessing(".\\dataset\\train_02.jpg");
-	
 	//cv::namedWindow("Sourcez", CV_WINDOW_NORMAL);
 	//cv::resizeWindow("Sourcez", 282, 502);
 	//cv::imshow("Sourcez", frame);

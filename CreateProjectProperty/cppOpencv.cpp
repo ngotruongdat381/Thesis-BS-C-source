@@ -794,6 +794,8 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 
 
 void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
+	clock_t tmp01 = clock();
+
 	if (isTesting) {
 		cv::namedWindow("Erosion After Canny", CV_WINDOW_NORMAL);
 		cv::resizeWindow("Erosion After Canny", 282, 502);
@@ -838,9 +840,9 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	/// Apply the specified morphology operation
 	morphologyEx(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, MORPH_CLOSE, elementx);
 	
+	Mat detected_edges;
 	if (isTesting) {
 		cv::imshow("Canny Only", CannyWithoutBlurAndMorphology);
-	}
 
 	//--------------------------------blur ----------------------------
 	medianBlur(frame, frame, blurIndex);
@@ -849,7 +851,6 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	Morphology_Operations(frame);
 
 	//----------------------------------Canny ---------------------
-	Mat detected_edges;
 	CannyProcessing(frame, detected_edges);
 
 	//----------------------------- Erosion after canny --------------------
@@ -860,7 +861,6 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		Point(erosion_size, erosion_size));
 	cv::dilate(detected_edges, detected_edges, element);
 
-	if (isTesting) {
 		cv::imshow("Erosion After Canny", detected_edges);
 	}
 
@@ -876,9 +876,14 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	double fraction = 1;
 	std::vector<dlib::full_object_detection> shapes_face;
 
+	clock_t tmp02 = clock();
+	std::cout << " Time for Preprocess: " << float(tmp02 - tmp01) / CLOCKS_PER_SEC << endl;
+
 	//shapes_face = face_detection_dlib_image(face_detection_frame);
 	shapes_face = face_detection_update(face_detection_frame);
 	
+	clock_t tmp03 = clock();
+
 	//No face is detected
 	if (shapes_face.size() == 0)
 	{
@@ -918,8 +923,6 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		checking_block = left_eye_width * 1.3 / 2;
 	}
 
-	//-------------------------collect sample color of shouder--------------------
-	//collectColorShoulder();
 
 	//-----------------------------shoulders---------------------------
 	double angle_left = -150;
@@ -954,6 +957,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	//return face_detection_frame
 	frame = Mat(face_detection_frame);
 
+	std::cout << " Time for Postprocess: " << float(clock() - tmp03) / CLOCKS_PER_SEC << endl;
 }
 
 void MYcppGui::collectColorShoulder()
