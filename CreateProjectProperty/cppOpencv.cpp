@@ -100,7 +100,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 	
 	while (1)
 	{
-		cout << nth++ << " th frame" << endl;
+		cout << nth << " th frame" << endl;
 
 		Mat frame, face_processed;
 		bool bSuccess = capture.read(frame); // read a new frame from video
@@ -115,6 +115,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 		ImageProcessing_WithUserInput(face_processed, false);
 		cv::imshow("Source", face_processed);
 		video.write(face_processed);
+		nth++;
 
 		if (waitKey(30) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
 		{
@@ -803,9 +804,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		cv::resizeWindow("Canny Only", 282, 502);
 	}
 
-
-	int blurIndex = 7;
-
+	
 	Mat src, face_detection_frame; // delete soon
 
 	//backup the frame 
@@ -845,6 +844,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		cv::imshow("Canny Only", CannyWithoutBlurAndMorphology);
 
 	//--------------------------------blur ----------------------------
+	int blurIndex = 7;
 	medianBlur(frame, frame, blurIndex);
 
 	//--------------------------------Morphology Open Close ----------------------------
@@ -865,7 +865,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	}
 
 	//----------------------------- Deal with userInput - start --------------------
-
+	
 	//for (int i = 0; i < userInput.size(); i++)
 	//{
 	//	circle(face_detection_frame, userInput[i], 7, blue, -1, 8);

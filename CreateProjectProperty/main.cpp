@@ -29,7 +29,7 @@ int main() {
 
 	cout << "0: Image | 1: Video : ";
 	cin >> n;
-	if (n = 0)
+	if (n == 0)
 		image_version = true;
 	else
 		image_version = false;
@@ -48,25 +48,18 @@ int main() {
 	myGui->AddUserInput(userInput);
 
 	//for image
-	if (image_version)
-	{
+	if (image_version) {
 		pathData = pathData + fileName + ".jpg";
 		frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
 		myGui->ImageProcessing_WithUserInput(frame, true);
 	}
 	//for video version
-	else	
-	{
+	else {
 		pathData = pathData + "video_" + fileName + ".avi";
 		myGui->VideoProcessing(pathData);
 	}
 
-	//cv::namedWindow("Sourcez", CV_WINDOW_NORMAL);
-	//cv::resizeWindow("Sourcez", 282, 502);
-	//cv::imshow("Sourcez", frame);
-
 	//myGui->ShowSampleShoulder();
-
 
 	waitKey(0);
 	return 0;

@@ -78,7 +78,7 @@ private:
 	vector<Mat> featureCollection;
 	double checking_block;
 	double distance_from_face_to_shouldersample;
-	int nth = 0;	//nth frame
+	int nth = 1;	//nth frame
 	std::vector<dlib::rectangle> cur_dets;
 
 	Point left_cheek = NULL;
