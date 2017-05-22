@@ -31,7 +31,8 @@ static Scalar blue = Scalar(255, 0, 0);
 static Scalar green = Scalar(0, 255, 0);
 static Scalar red = Scalar(0, 0, 255);
 static Scalar black = Scalar(0, 0, 0);
-
+static int FACE_DOWNSAMPLE_RATIO = 3;
+static int SKIP_FRAMES = 3;
 double EuclideanDistance(Point p1, Point p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
 double Angle(Point start, Point end);
@@ -45,12 +46,13 @@ public:
 	int myCppLoadAndShowRGB(string fileName);
 	void MYcppGui::VideoProcessing(string fileName);
 	//void MYcppGui::ImageProcessing(Mat &frame);
-	void MYcppGui::ImageProcessing_WithUserInput(Mat &frame);
+	void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting);
 	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point> userInput);
 
 	void MYcppGui::Morphology_Operations(Mat &src);
 	void MYcppGui::CannyProcessing(Mat image, OutputArray edges);
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat frame);
+	std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame);
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
 	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
 	void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor);
@@ -65,7 +67,7 @@ public:
 	void collectColorShoulder();
 
 private:
-	dlib::shape_predictor sp; //shape_predictor
+	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
 	vector<cv::Point> userInput;
 	vector<int>	colorValueCollection;
@@ -76,6 +78,8 @@ private:
 	vector<Mat> featureCollection;
 	double checking_block;
 	double distance_from_face_to_shouldersample;
+	int nth = 0;	//nth frame
+	std::vector<dlib::rectangle> cur_dets;
 
 	Point left_cheek = NULL;
 	Point right_cheek = NULL;

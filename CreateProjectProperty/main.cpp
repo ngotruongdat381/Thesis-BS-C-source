@@ -32,18 +32,23 @@ int main() {
 		fileName = "02";
 
 	pathUserInput = pathUserInput + fileName + ".txt";
-	pathData = pathData + fileName + ".jpg";
+	
+	//for image
+	//pathData = pathData + fileName + ".jpg";
 
+	//for video version
+	pathData = pathData + "video_" + fileName + ".avi";
 
 	userInput = readUserInput(pathUserInput);
 	MYcppGui *myGui = new MYcppGui();
 	myGui->AddUserInput(userInput);
 
 	//Load an image
-	frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
-	myGui->ImageProcessing_WithUserInput(frame);
+	//frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
+	//myGui->ImageProcessing_WithUserInput(frame, true);
 	
-	//myGui->VideoProcessing(".\\dataset\\test02.avi");
+	//load video
+	myGui->VideoProcessing(pathData);
 
 	//frame = myGui->ImageProcessing(".\\dataset\\train_02.jpg");
 	
