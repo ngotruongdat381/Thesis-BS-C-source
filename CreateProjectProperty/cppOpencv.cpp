@@ -812,36 +812,17 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 
 	if (userInputFrame.empty())
 	{
-		userInputFrame = src;
+		userInputFrame = frame.clone();
 		//-------------------------collect sample color of shouder--------------------
 		collectColorShoulder();
 	}
 
 	face_detection_frame = frame.clone(); // Use for shoulder detection
 
-	//-----Testing---
-	Mat CannyWithoutBlurAndMorphology, bilateralBlur;
-	int bilateralIndx = 19;
-	bilateralFilter(frame, bilateralBlur, bilateralIndx, bilateralIndx * 2, bilateralIndx / 2);
-	CannyProcessing(bilateralBlur, CannyWithoutBlurAndMorphology);
-
-	int erosion_size = 4;
-	Mat element = getStructuringElement(cv::MORPH_CROSS,
-		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-		Point(erosion_size, erosion_size));
-	cv::dilate(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, element);
-
-	int morph_elem = 0;
-	//kernel for morphology blur
-	int morph_size = 4;
-	// Since MORPH_X : 2,3,4,5 and 6
-	Mat elementx = getStructuringElement(morph_elem, Size(2 * morph_size + 1, 2 * morph_size + 1), Point(morph_size, morph_size));
-	/// Apply the specified morphology operation
-	morphologyEx(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, MORPH_CLOSE, elementx);
+	
 	
 	Mat detected_edges;
 	if (isTesting) {
-		cv::imshow("Canny Only", CannyWithoutBlurAndMorphology);
 
 	//--------------------------------blur ----------------------------
 	int blurIndex = 7;
@@ -854,9 +835,9 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	CannyProcessing(frame, detected_edges);
 
 	//----------------------------- Erosion after canny --------------------
-	erosion_size = 6;
+	int erosion_size = 6;
 
-	element = getStructuringElement(cv::MORPH_CROSS,
+	Mat element = getStructuringElement(cv::MORPH_CROSS,
 		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
 		Point(erosion_size, erosion_size));
 	cv::dilate(detected_edges, detected_edges, element);
@@ -924,14 +905,52 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	}
 
 
+	//-----------------------------PreProcess - move to new place ---------------------------
+
+	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x);
+	/*Point head_upper_shoulder = Point(left_cheek.x - distance_from_face_to_shouldersample, left_cheek.y);
+	Point end_upper_shoulder = Point(head_upper_shoulder.x + range_of_shoulder_sample*2.5, head_upper_shoulder.y - range_of_shoulder_sample*2.5);
+	*/
+
+	Point pA = Point(max(left_cheek.x - int(range_of_shoulder_sample*2.5), 0), min(left_cheek.y, right_cheek.y));
+	Point pB = Point(min(right_cheek.x + int(range_of_shoulder_sample*2.5), frame.cols), pA.y);
+	Point pC = Point(pB.x, min(symmetric_point.y, frame.rows));
+	Point pD = Point(pA.x, pC.y);
+
+	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));
+
+	//-----Testing---
+	Mat CannyWithoutBlurAndMorphology, bilateralBlur;
+	int bilateralIndx = 19;
+	bilateralFilter(sub_frame, bilateralBlur, bilateralIndx, bilateralIndx * 2, bilateralIndx / 2);
+	CannyProcessing(bilateralBlur, CannyWithoutBlurAndMorphology);
+
+	int erosion_size = 4;
+	Mat element = getStructuringElement(cv::MORPH_CROSS,
+		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+		Point(erosion_size, erosion_size));
+	cv::dilate(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, element);
+
+	int morph_elem = 0;
+	//kernel for morphology blur
+	int morph_size = 4;
+	// Since MORPH_X : 2,3,4,5 and 6
+	Mat elementx = getStructuringElement(morph_elem, Size(2 * morph_size + 1, 2 * morph_size + 1), Point(morph_size, morph_size));
+	/// Apply the specified morphology operation
+	morphologyEx(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, MORPH_CLOSE, elementx);
+
+
+	Mat BiggerCannyWithoutBlurAndMorphology(frame.rows, frame.cols, CV_8UC1, Scalar(0));
+	CannyWithoutBlurAndMorphology.copyTo(BiggerCannyWithoutBlurAndMorphology(cv::Rect(pA.x, pA.y, CannyWithoutBlurAndMorphology.cols, CannyWithoutBlurAndMorphology.rows)));
+
 	//-----------------------------shoulders---------------------------
 	double angle_left = -150;
 	int angle_right = -30;
 	Mat face_detection_frame_Blur_Check = face_detection_frame.clone();
 	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
 
-	detectShoulderLine(face_detection_frame, CannyWithoutBlurAndMorphology, true, angle_left, green, true);
-	detectShoulderLine(face_detection_frame, CannyWithoutBlurAndMorphology, false, angle_right, green, true);
+	detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, true, angle_left, green, true);
+	detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, false, angle_right, green, true);
 
 	//-----------------------------testing shoulder---------------------------
 	if (isTesting) {
@@ -952,6 +971,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		cv::namedWindow("Source_NoBlur_Check", CV_WINDOW_NORMAL);
 		cv::resizeWindow("Source_NoBlur_Check", 530, 700);
 		cv::imshow("Source_NoBlur_Check", face_detection_frame);
+		cv::imshow("Canny Only", BiggerCannyWithoutBlurAndMorphology);
 	}	
 	
 	//return face_detection_frame
