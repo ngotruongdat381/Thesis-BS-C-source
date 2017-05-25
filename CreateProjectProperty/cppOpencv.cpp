@@ -277,9 +277,8 @@ void MYcppGui::CannyProcessing(Mat image, OutputArray edges)
 
 
 	/// Using Canny's output as a mask, we display our result
-	dst = Scalar::all(0);
-	
-	image.copyTo(dst, edges); // check soon
+	//dst = Scalar::all(0);
+	//image.copyTo(dst, edges); // check soon
 }
 
 std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame)
@@ -793,22 +792,34 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 	}
 }
 
+Mat MYcppGui::Preprocessing(Mat frame) {
+	Mat CannyWithoutBlurAndMorphology, bilateralBlur;
+	int bilateralIndx = 19;
+	bilateralFilter(frame, bilateralBlur, bilateralIndx, bilateralIndx * 2, bilateralIndx / 2);
+	CannyProcessing(bilateralBlur, CannyWithoutBlurAndMorphology);
+
+	int erosion_size = 4;
+	Mat element = getStructuringElement(cv::MORPH_CROSS,
+		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+		Point(erosion_size, erosion_size));
+	cv::dilate(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, element);
+
+	int morph_elem = 0;
+	//kernel for morphology blur
+	int morph_size = 4;
+	// Since MORPH_X : 2,3,4,5 and 6
+	Mat elementx = getStructuringElement(morph_elem, Size(2 * morph_size + 1, 2 * morph_size + 1), Point(morph_size, morph_size));
+	/// Apply the specified morphology operation
+	morphologyEx(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, MORPH_CLOSE, elementx);
+	return CannyWithoutBlurAndMorphology;
+}
 
 void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
-	clock_t tmp01 = clock();
-
-	if (isTesting) {
-		cv::namedWindow("Erosion After Canny", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Erosion After Canny", 282, 502);
-		cv::namedWindow("Canny Only", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Canny Only", 282, 502);
-	}
-
 	
-	Mat src, face_detection_frame; // delete soon
-
-	//backup the frame 
-	src = frame.clone();
+	
+	Mat src, face_detection_frame; // change name soon
+	src = frame.clone(); // Use for Canny
+	face_detection_frame = frame.clone(); // Use for shoulder detection
 
 	if (userInputFrame.empty())
 	{
@@ -817,30 +828,31 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		collectColorShoulder();
 	}
 
-	face_detection_frame = frame.clone(); // Use for shoulder detection
-
 	
 	
 	Mat detected_edges;
 	if (isTesting) {
+		cv::namedWindow("Erosion After Canny", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Erosion After Canny", 282, 502);
+		cv::namedWindow("Canny Only", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Canny Only", 282, 502);
+		//--------------------------------blur ----------------------------
+		int blurIndex = 7;
+		medianBlur(frame, frame, blurIndex);
 
-	//--------------------------------blur ----------------------------
-	int blurIndex = 7;
-	medianBlur(frame, frame, blurIndex);
+		//--------------------------------Morphology Open Close ----------------------------
+		Morphology_Operations(frame);
 
-	//--------------------------------Morphology Open Close ----------------------------
-	Morphology_Operations(frame);
+		//----------------------------------Canny ---------------------
+		CannyProcessing(frame, detected_edges);
 
-	//----------------------------------Canny ---------------------
-	CannyProcessing(frame, detected_edges);
+		//----------------------------- Erosion after canny --------------------
+		int erosion_size = 6;
 
-	//----------------------------- Erosion after canny --------------------
-	int erosion_size = 6;
-
-	Mat element = getStructuringElement(cv::MORPH_CROSS,
-		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-		Point(erosion_size, erosion_size));
-	cv::dilate(detected_edges, detected_edges, element);
+		Mat element = getStructuringElement(cv::MORPH_CROSS,
+			Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+			Point(erosion_size, erosion_size));
+		cv::dilate(detected_edges, detected_edges, element);
 
 		cv::imshow("Erosion After Canny", detected_edges);
 	}
@@ -857,13 +869,11 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	double fraction = 1;
 	std::vector<dlib::full_object_detection> shapes_face;
 
-	clock_t tmp02 = clock();
-	std::cout << " Time for Preprocess: " << float(tmp02 - tmp01) / CLOCKS_PER_SEC << endl;
-
+	
 	//shapes_face = face_detection_dlib_image(face_detection_frame);
 	shapes_face = face_detection_update(face_detection_frame);
 	
-	clock_t tmp03 = clock();
+	
 
 	//No face is detected
 	if (shapes_face.size() == 0)
@@ -904,44 +914,27 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		checking_block = left_eye_width * 1.3 / 2;
 	}
 
-
-	//-----------------------------PreProcess - move to new place ---------------------------
+	
+	//-----------------------------	Preprocess a part of image to speed up ---------------------------
+	clock_t tmp01 = clock();
 
 	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x);
-	/*Point head_upper_shoulder = Point(left_cheek.x - distance_from_face_to_shouldersample, left_cheek.y);
-	Point end_upper_shoulder = Point(head_upper_shoulder.x + range_of_shoulder_sample*2.5, head_upper_shoulder.y - range_of_shoulder_sample*2.5);
-	*/
 
 	Point pA = Point(max(left_cheek.x - int(range_of_shoulder_sample*2.5), 0), min(left_cheek.y, right_cheek.y));
 	Point pB = Point(min(right_cheek.x + int(range_of_shoulder_sample*2.5), frame.cols), pA.y);
 	Point pC = Point(pB.x, min(symmetric_point.y, frame.rows));
 	Point pD = Point(pA.x, pC.y);
 
-	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));
-
-	//-----Testing---
-	Mat CannyWithoutBlurAndMorphology, bilateralBlur;
-	int bilateralIndx = 19;
-	bilateralFilter(sub_frame, bilateralBlur, bilateralIndx, bilateralIndx * 2, bilateralIndx / 2);
-	CannyProcessing(bilateralBlur, CannyWithoutBlurAndMorphology);
-
-	int erosion_size = 4;
-	Mat element = getStructuringElement(cv::MORPH_CROSS,
-		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-		Point(erosion_size, erosion_size));
-	cv::dilate(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, element);
-
-	int morph_elem = 0;
-	//kernel for morphology blur
-	int morph_size = 4;
-	// Since MORPH_X : 2,3,4,5 and 6
-	Mat elementx = getStructuringElement(morph_elem, Size(2 * morph_size + 1, 2 * morph_size + 1), Point(morph_size, morph_size));
-	/// Apply the specified morphology operation
-	morphologyEx(CannyWithoutBlurAndMorphology, CannyWithoutBlurAndMorphology, MORPH_CLOSE, elementx);
-
-
+	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));	
+	Mat CannyWithoutBlurAndMorphology = Preprocessing(sub_frame);
+	
+	//Add preprocessed part to a frame that is in the same size with the old one
 	Mat BiggerCannyWithoutBlurAndMorphology(frame.rows, frame.cols, CV_8UC1, Scalar(0));
 	CannyWithoutBlurAndMorphology.copyTo(BiggerCannyWithoutBlurAndMorphology(cv::Rect(pA.x, pA.y, CannyWithoutBlurAndMorphology.cols, CannyWithoutBlurAndMorphology.rows)));
+
+	clock_t tmp02 = clock();
+	std::cout << " Time for Preprocess: " << float(tmp02 - tmp01) / CLOCKS_PER_SEC << endl;
+	
 
 	//-----------------------------shoulders---------------------------
 	double angle_left = -150;
@@ -977,7 +970,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 	//return face_detection_frame
 	frame = Mat(face_detection_frame);
 
-	std::cout << " Time for Postprocess: " << float(clock() - tmp03) / CLOCKS_PER_SEC << endl;
+	std::cout << " Time for Postprocess: " << float(clock() - tmp02) / CLOCKS_PER_SEC << endl;
 }
 
 void MYcppGui::collectColorShoulder()

@@ -65,7 +65,7 @@ public:
 	bool MYcppGui::IsMatchToUserInput(Point point);
 	bool IsMatchToColorCollectionInput(Vec3b color);
 	void collectColorShoulder();
-
+	Mat Preprocessing(Mat frame);
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
