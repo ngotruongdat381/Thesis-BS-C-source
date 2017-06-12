@@ -43,6 +43,7 @@ public:
 	MYcppGui();
 	~MYcppGui();
 
+	Mat GetThumnail(string fileName);
 	int myCppLoadAndShowRGB(string fileName);
 	void MYcppGui::VideoProcessing(string fileName);
 	//void MYcppGui::ImageProcessing(Mat &frame);

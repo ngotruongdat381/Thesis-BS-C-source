@@ -91,17 +91,21 @@ void MYcppGui::VideoProcessing(string fileName) {
 	cout << "Frame per seconds : " << fps << endl;
 
 	cv::namedWindow("Source", CV_WINDOW_NORMAL);
-	cv::resizeWindow("Source", 282, 502);
+	cv::resizeWindow("Source", 530, 700);
 
 	int frame_width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
 	int frame_height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-	VideoWriter video("out.avi", CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
+	
+	int str_lenght = fileName.size();
+	string noFile = fileName.substr(str_lenght - 6, str_lenght - 5); //dont know why it crop from str_lenght - 6 to the end, so I crop it once again
+	noFile = noFile.substr(0, 2);
+
+	VideoWriter video("output_" + noFile + ".avi", CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
 
 	
 	while (1)
 	{
 		cout << nth << " th frame" << endl;
-
 		Mat frame, face_processed;
 		bool bSuccess = capture.read(frame); // read a new frame from video
 
@@ -751,43 +755,50 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 	}
 
 	//old way use the longest one
-	cv::vector<Point> shoulder_line_for_arm_longest = possible_lines_for_arm.back();
+	
+	if (!possible_lines_for_arm.empty()) {
+		cv::vector<Point> shoulder_line_for_arm_longest = possible_lines_for_arm.back();
 
-	for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
-	{
-		line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], black, 5, 8, 0);
-	}
-
-
-	cv::vector<Point> shoulder_line = possible_lines.back();
-
-	for (int i = 0; i < shoulder_line.size() - 1; i++)
-	{
-		line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
-	}
-
-
-	//new way which is to detect the position of arm line
-	//list use pushback, so the last one is [0]
-	int index_one_third = shoulder_line.size() * 1 / 3;
-	int index_half = shoulder_line.size()/ 2;
-	cv::vector<Point> shoulder_line_for_arm_test;
-
-	for (int i = possible_lines_for_arm.size() - 1; i >= 0; i--)
-	{
-		if (abs(shoulder_line[0].x - possible_lines_for_arm[i].back().x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
+		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
 		{
-			if (possible_lines_for_arm[i].back().y > shoulder_line[index_half].y) {
-				shoulder_line_for_arm_test = possible_lines_for_arm[i];
-				break;
-			}
+			line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], black, 5, 8, 0);
 		}
 	}
-	if (!shoulder_line_for_arm_test.empty())
-	{
-		for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
+
+
+
+	if (!possible_lines.empty()) {
+		cv::vector<Point> shoulder_line = possible_lines.back();
+
+		for (int i = 0; i < shoulder_line.size() - 1; i++)
 		{
-			line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], color, 5, 8, 0);
+			line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
+		}
+	
+
+		//new way which is to detect the position of arm line
+		//list use pushback, so the last one is [0]
+		int index_one_third = shoulder_line.size() * 1 / 3;
+		int index_half = shoulder_line.size()/ 2;
+		cv::vector<Point> shoulder_line_for_arm_test;
+
+		for (int i = possible_lines_for_arm.size() - 1; i >= 0; i--)
+		{
+			if (abs(shoulder_line[0].x - possible_lines_for_arm[i].back().x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
+			{
+				if (possible_lines_for_arm[i].back().y > shoulder_line[index_half].y) {
+					shoulder_line_for_arm_test = possible_lines_for_arm[i];
+					break;
+				}
+			}
+		}
+
+		if (!shoulder_line_for_arm_test.empty())
+		{
+			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
+			{
+				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], color, 5, 8, 0);
+			}
 		}
 	}
 }
@@ -828,8 +839,6 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
 		collectColorShoulder();
 	}
 
-	
-	
 	Mat detected_edges;
 	if (isTesting) {
 		cv::namedWindow("Erosion After Canny", CV_WINDOW_NORMAL);
@@ -1073,6 +1082,18 @@ cv::vector<Point> MYcppGui::findPath(int index, int index_line, cv::vector<cv::v
 		}
 		tmp_new_point_line.clear();
 	}
+
+	//The case that last chosen point was missing because  the next index_line 's size  == 0
+	//I'll refactor later
+	if (point_collection[index_line + 1].size() == 0) {
+		tmp_new_point_line.push_back(point_collection[index_line][index]);
+
+		if (new_point_line.empty() || tmp_new_point_line.size() > new_point_line.size())
+		{
+			new_point_line = tmp_new_point_line;
+		}
+		tmp_new_point_line.clear();
+	}
 	return new_point_line;
 }
 
@@ -1102,4 +1123,25 @@ float FindY_LineEquationThroughTwoPoint(float x_, Point p1, Point p2)
 	int y2 = p2.y;
 	float y_ = (float)(y2 - y1) / (float)(x2 - x1) * (float)(x_ - x1) + y1;
 	return y_;
+}
+
+Mat MYcppGui::GetThumnail(string fileName) {
+	
+	VideoCapture capture(fileName);
+	if (!capture.isOpened())  // if not success, exit program
+	{
+		cout << "Cannot open the video file" << endl;
+		return Mat();;
+	}
+
+	Mat frame;
+	bool bSuccess = capture.read(frame); // read a new frame from video
+
+	if (!bSuccess)
+	{
+		cout << "Cannot read the frame from video file" << endl;
+		return Mat();
+	}
+
+	return frame;
 }
