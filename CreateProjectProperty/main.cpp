@@ -2,11 +2,11 @@
 #include <sstream>
 #include <string>
 
-vector<vector<Point>> readUserInput(string path)
+vector<vector<Point2f>> readUserInput(string path)
 {
-	vector<cv::Point> leftShoulderInput;
-	vector<cv::Point> rightShoulderInput;
-	vector<vector<Point> > inputs;
+	vector<cv::Point2f> leftShoulderInput;
+	vector<cv::Point2f> rightShoulderInput;
+	vector<vector<Point2f> > inputs;
 
 	std::ifstream infile(path);
 	std::string line;
@@ -25,10 +25,10 @@ vector<vector<Point>> readUserInput(string path)
 		}
 
 		if (left) {
-			leftShoulderInput.push_back(Point(a, b));
+			leftShoulderInput.push_back(Point2f(a, b));
 		}
 		else {
-			rightShoulderInput.push_back(Point(a, b));
+			rightShoulderInput.push_back(Point2f(a, b));
 		}
 		previous_a = a;
 	}
@@ -39,7 +39,7 @@ vector<vector<Point>> readUserInput(string path)
 }
 
 int main() {
-	vector<vector<Point>> userInput;
+	vector<vector<Point2f>> userInput;
 	Mat frame;
 	Mat src;
 	string pathUserInput = "D:\\605\\Source code\\UserInput\\input_";

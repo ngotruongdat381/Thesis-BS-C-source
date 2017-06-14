@@ -36,12 +36,12 @@ static Scalar organe = Scalar(243, 97, 53);
 
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
-double EuclideanDistance(Point p1, Point p2);
+double EuclideanDistance(Point2f p1, Point2f p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
-double Angle(Point start, Point end);
-float FindY_LineEquationThroughTwoPoint(float x_, Point p1, Point p2);
-bool isSegmentsIntersecting(Point& p1, Point& p2, Point& q1, Point& q2);
-bool intersection(Point o1, Point p1, Point o2, Point p2, Point &r);
+double Angle(Point2f start, Point2f end);
+float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2);
+bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
+bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
 
 class MYcppGui {
 public:
@@ -53,7 +53,7 @@ public:
 	void MYcppGui::VideoProcessing(string fileName);
 	//void MYcppGui::ImageProcessing(Mat &frame);
 	void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting);
-	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point> userInput);
+	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput);
 
 	void MYcppGui::Morphology_Operations(Mat &src);
 	void MYcppGui::CannyProcessing(Mat image, OutputArray edges);
@@ -64,33 +64,33 @@ public:
 	void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color
 										, bool checkColor, bool checkPreviousResult);
 
-	cv::vector<Point> findPath(int index, int index_line, cv::vector<cv::vector<Point>> point_collection, double angle);
+	cv::vector<Point2f> findPath(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
 	void MYcppGui::ShowSampleShoulder();
-	void AddUserInput(vector<vector<Point>> _userInput);
-	bool MYcppGui::IsMatchToUserInput(Point point);
+	void AddUserInput(vector<vector<Point2f>> _userInput);
+	bool MYcppGui::IsMatchToUserInput(Point2f point);
 	bool IsMatchToColorCollectionInput(Vec3b color);
 	void collectColorShoulder();
 	Mat Preprocessing(Mat frame);
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
-	vector<vector<Point>> userInput;
-	vector<vector<Point>> simplifizedUserInput;
+	vector<vector<Point2f>> userInput;
+	vector<vector<Point2f>> simplifizedUserInput;
 	vector<int>	colorValueCollection;
 	vector<Vec3b> colorCollection;
 	
-	vector<cv::Point> leftRefinedInput;
-	vector<cv::Point> rightRefinedInput;
+	vector<cv::Point2f> leftRefinedInput;
+	vector<cv::Point2f> rightRefinedInput;
 	vector<Mat> featureCollection;
 	double checking_block;
 	double distance_from_face_to_shouldersample;
 	int nth = 1;	//nth frame
 	std::vector<dlib::rectangle> cur_dets;
 
-	Point left_cheek = NULL;
-	Point right_cheek = NULL;
-	Point chin = NULL;
-	Point top_nose = NULL;
-	Point symmetric_point = NULL;
-	Point upper_symmetric_point = NULL;
+	Point2f left_cheek = NULL;
+	Point2f right_cheek = NULL;
+	Point2f chin = NULL;
+	Point2f top_nose = NULL;
+	Point2f symmetric_point = NULL;
+	Point2f upper_symmetric_point = NULL;
 };
