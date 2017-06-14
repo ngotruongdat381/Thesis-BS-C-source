@@ -31,12 +31,17 @@ static Scalar blue = Scalar(255, 0, 0);
 static Scalar green = Scalar(0, 255, 0);
 static Scalar red = Scalar(0, 0, 255);
 static Scalar black = Scalar(0, 0, 0);
+static Scalar yellow = Scalar(0, 255, 255);
+static Scalar organe = Scalar(243, 97, 53);
+
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
 double EuclideanDistance(Point p1, Point p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
 double Angle(Point start, Point end);
 float FindY_LineEquationThroughTwoPoint(float x_, Point p1, Point p2);
+bool isSegmentsIntersecting(Point& p1, Point& p2, Point& q1, Point& q2);
+bool intersection(Point o1, Point p1, Point o2, Point p2, Point &r);
 
 class MYcppGui {
 public:
@@ -56,13 +61,12 @@ public:
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame);
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
 	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
-	void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor);
+	void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color
+										, bool checkColor, bool checkPreviousResult);
 
 	cv::vector<Point> findPath(int index, int index_line, cv::vector<cv::vector<Point>> point_collection, double angle);
 	void MYcppGui::ShowSampleShoulder();
-
-	cv::vector<Point> MYcppGui::getFeatureFromUserInput(Mat shoulder_detection_image, Point head_shoulder, Point end_shoulder, int angle, int distance);
-	void AddUserInput(vector<cv::Point> _userInput);
+	void AddUserInput(vector<vector<Point>> _userInput);
 	bool MYcppGui::IsMatchToUserInput(Point point);
 	bool IsMatchToColorCollectionInput(Vec3b color);
 	void collectColorShoulder();
@@ -70,7 +74,8 @@ public:
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
-	vector<cv::Point> userInput;
+	vector<vector<Point>> userInput;
+	vector<vector<Point>> simplifizedUserInput;
 	vector<int>	colorValueCollection;
 	vector<Vec3b> colorCollection;
 	

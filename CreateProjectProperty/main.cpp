@@ -2,23 +2,44 @@
 #include <sstream>
 #include <string>
 
-vector<cv::Point> readUserInput(string path)
+vector<vector<Point>> readUserInput(string path)
 {
-	vector<cv::Point> userInput;
+	vector<cv::Point> leftShoulderInput;
+	vector<cv::Point> rightShoulderInput;
+	vector<vector<Point> > inputs;
+
 	std::ifstream infile(path);
 	std::string line;
+	double previous_a = 0;
+	bool left = true;
+
 	while (std::getline(infile, line))
 	{
 		std::istringstream iss(line);
 		double a, b;
 		if (!(iss >> a >> b)) { break; } // error
-		userInput.push_back(Point(a, b));
+
+		//Move to right shoulder input
+		if (abs(a - previous_a) > 50 && previous_a != 0) {
+			left = false;
+		}
+
+		if (left) {
+			leftShoulderInput.push_back(Point(a, b));
+		}
+		else {
+			rightShoulderInput.push_back(Point(a, b));
+		}
+		previous_a = a;
 	}
-	return userInput;
+	inputs.push_back(leftShoulderInput);
+	inputs.push_back(rightShoulderInput);
+
+	return inputs;
 }
 
 int main() {
-	vector<cv::Point> userInput;
+	vector<vector<Point>> userInput;
 	Mat frame;
 	Mat src;
 	string pathUserInput = "D:\\605\\Source code\\UserInput\\input_";
