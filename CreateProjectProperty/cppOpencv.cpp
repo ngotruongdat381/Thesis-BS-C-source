@@ -601,14 +601,7 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 	Point2f intersection_point_01;
 	intersection(head_upper_shoulder, end_upper_shoulder, symmetric_point, end_bottom_shoulder, intersection_point_01);
 
-	//Draw simplifizedUserInput for testing
-	for (int i = 0; i < simplifizedUserInput[!leftHandSide].size(); i++) {
-		//circle(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], 10, yellow, -1, 8);
-		if (i < simplifizedUserInput[!leftHandSide].size() - 1) {
-			//line(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], simplifizedUserInput[!leftHandSide][i + 1], yellow, 3, 8, 0);
-		}
-		
-	}
+	
 
 	//Take points on shoulder_sample follow "checking_block" and build LineIterator from these point to symmetric_point (but stop at bottom shoulder_line
 	for (int j = 0; abs(checking_block*j*cos(radian)) < range_of_shoulder_sample*2.5; j++) {
@@ -661,10 +654,6 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 		{
 			value_in_edge_map = detected_edges.at<uchar>(it.pos().y, it.pos().x);	// y first, x later
 			Point2f current_point = Point2f(it.pos().x, it.pos().y);
-			
-			if (it.pos().y > 1170 && it.pos().y < 1200) {
-				cout << endl;
-			}
 
 			//problem only on train_10
 			if (it.pos().y + 25 >= shoulder_detection_image.size().height)
@@ -701,11 +690,17 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 				}
 			}
 		}
-		//circle(shoulder_detection_image, intersection_point_with_previous_result, 7, blue, -1, 8);
-
 		point_collection.push_back(point_line);
 	}
 
+	//Draw simplifizedUserInput for testing
+	for (int i = 0; i < simplifizedUserInput[!leftHandSide].size(); i++) {
+		circle(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], 5, yellow, -1, 8);
+		if (i < simplifizedUserInput[!leftHandSide].size() - 1) {
+			//line(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], simplifizedUserInput[!leftHandSide][i + 1], yellow, 3, 8, 0);
+		}
+
+	}
 
 
 	//take potential point for shoulder line by checking angle of these line
@@ -1075,7 +1070,7 @@ cv::vector<Point2f> MYcppGui::findPath(int index, int index_line, cv::vector<cv:
 	for (int i = 0; i < point_collection[index_line + 1].size(); i++)
 	{
 		//check angle
-		if (abs(Angle(point_collection[index_line][index], point_collection[index_line + 1][i]) - angle) <= 25) {
+		if (abs(Angle(point_collection[index_line][index], point_collection[index_line + 1][i]) - angle) <= 30) { //used to 25
 			tmp_new_point_line = findPath(i, index_line + 1, point_collection, angle);
 		}
 		tmp_new_point_line.push_back(point_collection[index_line][index]);
