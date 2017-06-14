@@ -1067,7 +1067,7 @@ cv::vector<Point2f> MYcppGui::findPath(int index, int index_line, cv::vector<cv:
 	cv::vector<Point2f> new_point_line;
 	cv::vector<Point2f> tmp_new_point_line;
 
-	for (int i = 0; i < point_collection[index_line + 1].size(); i++)
+	for (int i = point_collection[index_line + 1].size() - 1; i >= 0; i--)		//Go inside out to choose the outter result
 	{
 		//check angle
 		if (abs(Angle(point_collection[index_line][index], point_collection[index_line + 1][i]) - angle) <= 30) { //used to 25
@@ -1082,7 +1082,7 @@ cv::vector<Point2f> MYcppGui::findPath(int index, int index_line, cv::vector<cv:
 		tmp_new_point_line.clear();
 	}
 
-	//The case that last chosen point was missing because  the next index_line 's size  == 0
+	//The case that last chosen point was missing because the next index_line 's size  == 0
 	//I'll refactor later
 	if (point_collection[index_line + 1].size() == 0) {
 		tmp_new_point_line.push_back(point_collection[index_line][index]);
