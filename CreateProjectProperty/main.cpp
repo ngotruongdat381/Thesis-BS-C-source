@@ -72,7 +72,7 @@ int main() {
 	if (image_version) {
 		pathData = pathData + fileName + ".jpg";
 		frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
-		myGui->ImageProcessing_WithUserInput(frame, true);
+		myGui->ImageProcessing_WithUserInput(frame, true, true);
 	}
 	//for video version
 	else {

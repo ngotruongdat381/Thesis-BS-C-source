@@ -6,6 +6,71 @@
 //using namespace cv;
 
 
+void overlay_whiteBackground_image() {
+	//Add mustache
+	//Load our overlay image : mustache.png
+	/*Mat imgMustache = imread("D:\\605\\Source code\\dataset\\Sticker\\mustache.jpg", IMREAD_UNCHANGED);
+	double mustacheHeight = shapes_face[0].part(51).y() - shapes_face[0].part(33).y();
+	double mustacWidth = mustacheHeight / imgMustache.size().height * imgMustache.size().width;*/
+
+	//Mat mask1, src1;
+	//resize(imgMustache, mask1, Size(mustacWidth, mustacheHeight));
+
+	//// ROI selection
+	//Rect roi(shapes_face[0].part(33).x() - mustacWidth / 2, shapes_face[0].part(33).y(), mustacWidth, mustacheHeight);
+	//face_detection_frame(roi).copyTo(src1);
+
+	//// to make the white region transparent
+	//Mat mask2, m, m1;
+	//cvtColor(mask1, mask2, CV_BGR2GRAY);
+	//threshold(mask2, mask2, 230, 255, CV_THRESH_BINARY_INV);
+
+	//vector<Mat> maskChannels(3), result_mask(3);
+	//split(mask1, maskChannels);
+	//bitwise_and(maskChannels[0], mask2, result_mask[0]);
+	//bitwise_and(maskChannels[1], mask2, result_mask[1]);
+	//bitwise_and(maskChannels[2], mask2, result_mask[2]);
+	//merge(result_mask, m);         //    imshow("m",m);
+
+	//mask2 = 255 - mask2;
+	//vector<Mat> srcChannels(3);
+	//split(src1, srcChannels);
+	//bitwise_and(srcChannels[0], mask2, result_mask[0]);
+	//bitwise_and(srcChannels[1], mask2, result_mask[1]);
+	//bitwise_and(srcChannels[2], mask2, result_mask[2]);
+	//merge(result_mask, m1);        //    imshow("m1",m1);
+
+	//addWeighted(m, 1, m1, 1, 0, m1);    //    imshow("m2",m1);
+
+	//m1.copyTo(face_detection_frame(roi));
+}
+
+Mat overlrayImage(Mat background, Mat foreground) {
+
+	Mat dst = background.clone();
+	Mat resizedFG;
+	resize(foreground, resizedFG, background.size());
+
+
+	for (int y = 0; y < (int)(background.rows); ++y) {
+		for (int x = 0; x < (int)(background.cols); ++x) {
+			Vec3b b = background.at<cv::Vec3b>(y, x);
+			Vec4b& f = resizedFG.at<Vec4b>(y, x);
+
+			double alpha = f[3] / 255.0;
+
+			Vec3b d;
+			for (int k = 0; k < 3; ++k) {
+				d[k] = f[k] * alpha + b[k] * (1.0 - alpha);
+			}
+
+			dst.at<cv::Vec3b>(y, x) = d;
+		}
+	}
+	return dst;
+}
+
+
 // Given three colinear points p, q, r, the function checks if
 // point q lies on line segment 'pr'
 bool onSegment(Point2f p, Point2f q, Point2f r)
@@ -78,7 +143,7 @@ MYcppGui::~MYcppGui()
 void MYcppGui::AddUserInput(vector<vector<Point2f>> _userInput)
 {
 	userInput = _userInput;
-	
+	current_shoulderLine = vector<vector<Point2f>>(_userInput);
 	//Simplifized User Input.
 	simplifizedUserInput.resize(userInput.size());
 	for (int k = 0; k < 2; k++) {
@@ -87,6 +152,20 @@ void MYcppGui::AddUserInput(vector<vector<Point2f>> _userInput)
 
 	userInputFrame = NULL;
 }
+
+void MYcppGui::GetSticker(string name) {
+	for (int i = 0; i < 100; i++) {
+		string path = "D:\\605\\Source code\\dataset\\Sticker\\" + name + "\\" + to_string(i) + ".png";
+		Mat image = imread(path, -1);
+		if (!image.data)                              // Check for invalid input
+		{
+			cout << "Read sticker: DONE!" << std::endl;
+			break;
+		}
+		stickerFrames.push_back(image);
+	}
+}
+
 int MYcppGui::myCppLoadAndShowRGB(string fileName)
 {
 	cout << fileName << endl;
@@ -121,7 +200,8 @@ void MYcppGui::VideoProcessing(string fileName) {
 
 	VideoWriter video("output_" + noFile + ".avi", CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
 
-	
+	GetSticker("pokemon");
+
 	while (1)
 	{
 		cout << nth << " th frame" << endl;
@@ -135,10 +215,14 @@ void MYcppGui::VideoProcessing(string fileName) {
 			bSuccess = capture.read(frame);
 		}
 		face_processed = frame.clone();
-		ImageProcessing_WithUserInput(face_processed, false);
+		ImageProcessing_WithUserInput(face_processed, false, true);
+		AddSticker(face_processed);
 		cv::imshow("Source", face_processed);
 		video.write(face_processed);
+		
 		nth++;
+		index_stickerFrames++;
+		index_stickerFrames %= stickerFrames.size();
 
 		if (waitKey(30) == 27) //wait for 'esc' key press for 30 ms. If 'esc' key is pressed, break loop
 		{
@@ -149,113 +233,223 @@ void MYcppGui::VideoProcessing(string fileName) {
 	}
 }
 
-//!Process with a image
-//void MYcppGui::ImageProcessing(Mat &frame) {
-//	int blurIndex = 7;
-//
-//	Mat src, face_detection_frame; // delete soon
-//
-//	//backup the frame 
-//	src = frame.clone();
-//
-//	face_detection_frame = frame.clone(); // delete soon
-//
-//	cv::namedWindow("Source", CV_WINDOW_NORMAL);
-//	cv::resizeWindow("Source", 282, 502);
-//	cv::imshow("Source", src);
-//
-//
-//	//--------------------------------blur - start----------------------------
-//	medianBlur(frame, frame, blurIndex);
-//
-//	cv::namedWindow("Median Blur", CV_WINDOW_NORMAL);
-//	cv::resizeWindow("Median Blur", 282, 502);
-//	cv::imshow("Median Blur", frame);
-//
-//
-//	//--------------------------------Morphology Open Close - start----------------------------
-//	Morphology_Operations(frame); //return nothing
-//
-//	cv::namedWindow("Morphology Open Close", CV_WINDOW_KEEPRATIO);
-//	cv::resizeWindow("Morphology Open Close", 282, 502);
-//	cv::imshow("Morphology Open Close", frame);
-//
-//	//----------------------------------Canny - start ---------------------
-//	Mat detected_edges;
-//
-//	CannyProcessing(frame, detected_edges);
-//	cv::namedWindow("Edge Map", CV_WINDOW_KEEPRATIO);
-//	cv::resizeWindow("Edge Map", 282, 502);
-//	cv::imshow("Edge Map", detected_edges);
-//
-//
-//	//----------------------------- Erosion after canny - start --------------------
-//	// erosion_size
-//	int erosion_size = 6;
-//
-//	Mat element = getStructuringElement(cv::MORPH_CROSS,
-//										Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-//										Point(erosion_size, erosion_size));
-//	cv::dilate(detected_edges, detected_edges, element);
-//
-//	cv::namedWindow("Erosion After Canny", CV_WINDOW_KEEPRATIO);
-//	cv::resizeWindow("Erosion After Canny", 282, 502);
-//	cv::imshow("Erosion After Canny", detected_edges);
-//
-//
-//	//----------------------------- Detect face - start ---------------------
-//	double fraction = 1;
-//	std::vector<dlib::full_object_detection> shapes_face;
-//
-//	shapes_face = face_detection_dlib_image(face_detection_frame);
-//	detectNecessaryPointsOfFace(shapes_face);
-//
-//	circle(face_detection_frame, left_cheek, 7, green, -1, 8);
-//	circle(face_detection_frame, right_cheek, 7, green, -1, 8);
-//	circle(face_detection_frame, top_nose, 7, green, -1, 8);
-//	circle(face_detection_frame, chin, 7, green, -1, 8);
-//	circle(face_detection_frame, symmetric_point, 7, green, -1, 8);
-//
-//	double left_eye_width = shapes_face[0].part(39).x() - shapes_face[0].part(36).x();
-//	double distance_from_face_to_shouldersample = left_eye_width * 3 / 4;
-//	double checking_block = left_eye_width * 1 / 3;
-//
-//
-//	//-----------------------------left shoulder---------------------------
-//	double angle_left = -150;
-//	double radian_left = angle_left * CV_PI / 180.0;
-//	int length = 0; //500 before
-//
-//	length = abs((float)(symmetric_point.y - left_cheek.y) / sin(radian_left));
-//
-//	Point head_left_shoulder = Point(left_cheek.x - distance_from_face_to_shouldersample, left_cheek.y);
-//	Point end_left_shoulder = Point(head_left_shoulder.x + length*cos(radian_left), head_left_shoulder.y - length*sin(radian_left));
-//
-//	detectShoulderLine(face_detection_frame, detected_edges, head_left_shoulder, end_left_shoulder, angle_left, checking_block);
-//
-//
-//	//-----------------------------right shoulder---------------------------
-//	int angle_right = -30;
-//	double radian_right = angle_right * CV_PI / 180.0;
-//
-//	Point head_right_shoulder = Point(right_cheek.x + distance_from_face_to_shouldersample, right_cheek.y);
-//	Point end_right_shoulder = Point(head_right_shoulder.x + length*cos(radian_right), head_right_shoulder.y - length*sin(radian_right));
-//
-//	detectShoulderLine(face_detection_frame, detected_edges, head_right_shoulder, end_right_shoulder, angle_right, checking_block);
-//
-//	cv::imshow("Erosion After Canny", detected_edges);
-//	cv::imshow("Source", face_detection_frame);
-//	
-//	//return face_detection_frame
-//	frame = Mat(face_detection_frame);
-//
-//}
 
+void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine) {
+
+
+	Mat src, face_detection_frame; // change name soon
+	src = frame.clone(); // Use for Canny
+	face_detection_frame = frame.clone(); // Use for shoulder detection
+
+	if (userInputFrame.empty())
+	{
+		userInputFrame = frame.clone();
+		//-------------------------collect sample color of shouder--------------------
+		collectColorShoulder();
+	}
+
+	Mat detected_edges;
+	if (isTesting) {
+		cv::namedWindow("Erosion After Canny", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Erosion After Canny", 282, 502);
+		cv::namedWindow("Canny Only", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Canny Only", 282, 502);
+		//--------------------------------blur ----------------------------
+		int blurIndex = 7;
+		medianBlur(frame, frame, blurIndex);
+
+		//--------------------------------Morphology Open Close ----------------------------
+		Morphology_Operations(frame);
+
+		//----------------------------------Canny ---------------------
+		CannyProcessing(frame, detected_edges);
+
+		//----------------------------- Erosion after canny --------------------
+		int erosion_size = 6;
+
+		Mat element = getStructuringElement(cv::MORPH_CROSS,
+			Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+			Point(erosion_size, erosion_size));
+		cv::dilate(detected_edges, detected_edges, element);
+
+		cv::imshow("Erosion After Canny", detected_edges);
+	}
+
+	//----------------------------- Deal with userInput - start --------------------
+
+	//for (int i = 0; i < userInput.size(); i++)
+	//{
+	//	circle(face_detection_frame, userInput[i], 7, blue, -1, 8);
+	//}
+	//cv::imshow("Source", face_detection_frame);
+
+	//----------------------------- Detect face - start ---------------------
+	double fraction = 1;
+	std::vector<dlib::full_object_detection> shapes_face;
+
+
+	//shapes_face = face_detection_dlib_image(face_detection_frame);
+	shapes_face = face_detection_update(face_detection_frame);
+
+
+
+	//No face is detected
+	if (shapes_face.size() == 0)
+	{
+		return;
+	}
+
+	for (int i = 0; i < 6; i++)
+	{
+		line(face_detection_frame, Point2f(shapes_face[0].part(i).x() / fraction, shapes_face[0].part(i).y() / fraction),
+			Point2f(shapes_face[0].part(i + 1).x() / fraction, shapes_face[0].part(i + 1).y() / fraction), green, 5, 8, 0);
+	}
+
+	for (int i = 11; i < 16; i++)
+	{
+		line(face_detection_frame, Point2f(shapes_face[0].part(i).x() / fraction, shapes_face[0].part(i).y() / fraction),
+			Point2f(shapes_face[0].part(i + 1).x() / fraction, shapes_face[0].part(i + 1).y() / fraction), green, 5, 8, 0);
+	}
+
+	detectNecessaryPointsOfFace(shapes_face);
+
+	circle(face_detection_frame, left_cheek, 5, green, -1, 8);
+	circle(face_detection_frame, right_cheek, 5, green, -1, 8);
+	circle(face_detection_frame, top_nose, 5, green, -1, 8);
+	circle(face_detection_frame, chin, 5, green, -1, 8);
+	circle(face_detection_frame, symmetric_point, 5, green, -1, 8);
+	circle(face_detection_frame, upper_symmetric_point, 5, green, -1, 8);
+
+
+	double left_eye_width = shapes_face[0].part(39).x() - shapes_face[0].part(36).x();
+
+	if (distance_from_face_to_shouldersample == 0 || abs(left_eye_width * 3 / 4 - distance_from_face_to_shouldersample) >= 50)
+	{
+		distance_from_face_to_shouldersample = left_eye_width * 3 / 4;
+	}
+
+	if (checking_block == 0 || abs(left_eye_width * 1 / 3 - checking_block) >= 50)
+	{
+		checking_block = left_eye_width * 1.3 / 2;
+	}
+
+
+
+	//-----------------------------	Preprocess a part of image to speed up ---------------------------
+	clock_t tmp01 = clock();
+
+	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x);
+
+	Point2f pA = Point2f(max(left_cheek.x - range_of_shoulder_sample*2.5, 0.0), min(left_cheek.y, right_cheek.y));
+	Point2f pB = Point2f(min(right_cheek.x + range_of_shoulder_sample*2.5, double(frame.cols)), pA.y);
+	Point2f pC = Point2f(pB.x, min(symmetric_point.y, float(frame.rows)));
+	Point2f pD = Point2f(pA.x, pC.y);
+
+	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));
+	Mat CannyWithoutBlurAndMorphology = Preprocessing(sub_frame);
+
+	//Add preprocessed part to a frame that is in the same size with the old one
+	Mat BiggerCannyWithoutBlurAndMorphology(frame.rows, frame.cols, CV_8UC1, Scalar(0));
+	CannyWithoutBlurAndMorphology.copyTo(BiggerCannyWithoutBlurAndMorphology(cv::Rect(pA.x, pA.y, CannyWithoutBlurAndMorphology.cols, CannyWithoutBlurAndMorphology.rows)));
+
+	clock_t tmp02 = clock();
+	std::cout << " Time for Preprocess: " << float(tmp02 - tmp01) / CLOCKS_PER_SEC << endl;
+
+
+	//-----------------------------shoulders---------------------------
+	double angle_left = -150;
+	int angle_right = -30;
+	Mat face_detection_frame_Blur_Check = face_detection_frame.clone();
+	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
+
+	cv::vector<Point2f> leftShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, true, angle_left, green, true, isTesting);
+	cv::vector<Point2f> rightShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, false, angle_right, green, true, isTesting);
+	current_shoulderLine[LEFT] = leftShouderLine;
+	current_shoulderLine[RIGHT] = rightShouderLine;
+
+	//-----------------------------testing shoulder---------------------------
+	if (isTesting) {
+		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, true, angle_left, blue, false, true);
+		detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, true, angle_left, blue, true, true);
+
+		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, false, angle_right, blue, false, true);
+		detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, false, angle_right, blue, true, true);
+
+		cv::namedWindow("Blur_Check", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Blur_Check", 530, 700);
+		cv::namedWindow("Blur_NoCheck", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Blur_NoCheck", 530, 700);
+
+		cv::imshow("Blur_Check", face_detection_frame_Blur_Check);
+		cv::imshow("Blur_NoCheck", face_detection_frame_Blur_NoCheck);
+
+		cv::namedWindow("Source_NoBlur_Check", CV_WINDOW_NORMAL);
+		cv::resizeWindow("Source_NoBlur_Check", 530, 700);
+		cv::imshow("Source_NoBlur_Check", face_detection_frame);
+		cv::imshow("Canny Only", BiggerCannyWithoutBlurAndMorphology);
+	}
+
+	//Return face_detection_frame
+	if (DebugLine) {
+		frame = face_detection_frame.clone();
+	}
+	else {
+		frame = src.clone();
+	}
+
+	std::cout << " Time for Postprocess: " << float(clock() - tmp02) / CLOCKS_PER_SEC << endl;
+}
+
+void MYcppGui::AddSticker(Mat &frame) {
+	Point stickerPosition;
+	if (current_shoulderLine[RIGHT].size() != 0) {
+		//At first we take a middle point
+		int index_sticker = current_shoulderLine[RIGHT].size() / 2;
+		stickerPosition = current_shoulderLine[RIGHT][index_sticker];
+
+		//Mat sticker = imread("D:\\605\\Source code\\dataset\\Sticker\\pokemon\\output-0.png", IMREAD_UNCHANGED);
+		Mat sticker = stickerFrames[index_stickerFrames];
+		//at first we take checking_block*2 as width
+		double stickerWidth = checking_block * 4;
+		double stickerHeight = stickerWidth / sticker.size().width * sticker.size().height;
+		bool need_to_crop_sticker = false;
+		if (stickerPosition.x + stickerWidth / 2 > frame.size().width) {
+			stickerWidth = frame.size().width - stickerPosition.x + stickerWidth / 2;
+			need_to_crop_sticker = true;
+		}
+		if (stickerPosition.y - stickerHeight / 2 > frame.size().height) {
+			stickerHeight = frame.size().height - stickerPosition.x + stickerHeight / 2;
+			need_to_crop_sticker = true;
+		}
+
+		if (need_to_crop_sticker) {
+			// Setup a rectangle to define your region of interest
+			cv::Rect stickerROI(0, 0, stickerWidth, stickerHeight);
+
+			// Crop the full image to that image contained by the rectangle myROI
+			// Note that this doesn't copy the data
+			cv::Mat croppedSticker = sticker(stickerROI);
+			sticker = croppedSticker.clone();
+		}
+
+		Mat cropedBG;
+		//The cases that sticker go out of the iamge
+
+
+		Rect roi(stickerPosition.x - stickerWidth / 2, stickerPosition.y - stickerHeight / 2, stickerWidth, stickerHeight);	
+		frame(roi).copyTo(cropedBG);
+
+
+		Mat dst = overlrayImage(cropedBG, sticker);
+
+		dst.copyTo(frame(roi));
+	}
+}
 
 Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput)
 {
 	cv::Mat img_input = cv::imread(fileName, CV_LOAD_IMAGE_COLOR);
-	ImageProcessing_WithUserInput(img_input, true);
+	ImageProcessing_WithUserInput(img_input, true, true);
 	return img_input;
 }
 
@@ -459,112 +653,8 @@ void MYcppGui::ShowSampleShoulder() {
 	cv::imshow("Shouldersample", featureCollection[1]);
 }
 
-
-
-//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance){
-//
-//	LineIterator upper_shoulder_sample(shoulder_detection_image, head_shoulder, end_shoulder, 8, false);
-//	line(shoulder_detection_image, head_shoulder, end_shoulder, red, 3, 8, 0);
-//
-//	int length = 500;
-//	double radian = angle * CV_PI / 180.0;
-//
-//	Point head_bottom_shoulder = chin;
-//	Point end_bottom_shoulder = Point(head_bottom_shoulder.x + length*cos(radian), head_bottom_shoulder.y - length*sin(radian));
-//	line(shoulder_detection_image, head_bottom_shoulder, end_bottom_shoulder, red, 3, 8, 0);
-//
-//	cv::vector<cv::vector<Point>> point_collection;
-//	cv::vector<cv::vector<Point>> possible_lines;
-//
-//	//Take points on shoulder_sample follow "distance" and build LineIterator from these point to symmetric_point
-//	for (int j = 0; j < upper_shoulder_sample.count; j += distance) {
-//
-//		int value_in_edge_map = 0;
-//		int x_ = upper_shoulder_sample.pos().x;
-//		int y_ = upper_shoulder_sample.pos().y;
-//
-//		//Find a start point for out checking line -> faster, save memory
-//		if (upper_shoulder_sample.pos().x < 0)
-//		{
-//			x_ = 0;
-//			y_ = FindY_LineEquationThroughTwoPoint(x_, upper_shoulder_sample.pos(), symmetric_point);
-//		}
-//
-//		//new way
-//		Point2f intersection_point;
-//		intersection(head_bottom_shoulder, end_bottom_shoulder, upper_shoulder_sample.pos(), symmetric_point, intersection_point);
-//
-//		//Use the new start point 		//Go inside out
-//		LineIterator it(shoulder_detection_image, intersection_point, Point(x_, y_), 8, false);
-//		//line(shoulder_detection_image, intersection_point, Point(x_, y_), red, 3, 8, 0);
-//
-//		cv::vector<Point> point_line;
-//
-//		//Get all intersections of LineIterator and Canny line;
-//		for (int i = 0; i < it.count; i++, ++it)
-//		{
-//			value_in_edge_map = detected_edges.at<uchar>(it.pos().y, it.pos().x);	// y first, x later
-//			Point current_point = Point(it.pos().x, it.pos().y);
-//			if (value_in_edge_map == 255)
-//			{
-//				if (point_line.empty() || ((abs(current_point.x - point_line.back().x) > 15) && (abs(current_point.y - point_line.back().y) > 15)))
-//				{
-//					circle(shoulder_detection_image, Point(it.pos().x, it.pos().y), 7, red, -1, 8);
-//					point_line.push_back(Point(it.pos().x, it.pos().y));
-//				}
-//
-//			}
-//		}
-//		point_collection.push_back(point_line);
-//		for (int i = 0; i < distance; i++)
-//		{
-//			upper_shoulder_sample++;
-//		}
-//	}
-//
-//	//take potential point for shoulder line by checking angle of these line
-//	for (int a = 0; a < point_collection.size() - 1; a++) {
-//		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
-//		{
-//			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
-//			{
-//				//Check difference of angle
-//				cv::vector<Point> point_line;
-//				if (abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle) <= 20)
-//				{
-//					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], red, 3, 8, 0);
-//					point_line.push_back(point_collection[a][b1]);
-//					point_line.push_back(point_collection[a + 1][b2]);
-//				}
-//			}
-//		}
-//	}
-//
-//
-//	for (int i = 0; i < point_collection.size(); i++) {
-//		for (int j = 0; j < point_collection[i].size(); j++) {
-//			cv::vector<Point> path = findPath(j, i, point_collection, angle);
-//
-//			if (possible_lines.empty() || path.size() > possible_lines.back().size())
-//			{
-//				possible_lines.push_back(path);
-//				//cout << "A new max line" << endl;
-//			}
-//			//cout << endl;
-//		}
-//	}
-//
-//	cv::vector<Point> shoulder_line = possible_lines.back();
-//
-//	for (int i = 0; i < shoulder_line.size() - 1; i++)
-//	{
-//		line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], blue, 3, 8, 0);
-//	}
-//
-//}
-
 //new fuction
-void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor, bool checkPreviousResult)
+cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor, bool checkPreviousResult)
 {
 	//cv::namedWindow("Source", CV_WINDOW_NORMAL);
 	//cv::resizeWindow("Source", 530, 700);
@@ -796,6 +886,7 @@ void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edg
 				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], color, 5, 8, 0);
 			}
 		}
+		return shoulder_line;
 	}
 }
 
@@ -821,162 +912,6 @@ Mat MYcppGui::Preprocessing(Mat frame) {
 	return CannyWithoutBlurAndMorphology;
 }
 
-void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting) {
-	
-	
-	Mat src, face_detection_frame; // change name soon
-	src = frame.clone(); // Use for Canny
-	face_detection_frame = frame.clone(); // Use for shoulder detection
-
-	if (userInputFrame.empty())
-	{
-		userInputFrame = frame.clone();
-		//-------------------------collect sample color of shouder--------------------
-		collectColorShoulder();
-	}
-
-	Mat detected_edges;
-	if (isTesting) {
-		cv::namedWindow("Erosion After Canny", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Erosion After Canny", 282, 502);
-		cv::namedWindow("Canny Only", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Canny Only", 282, 502);
-		//--------------------------------blur ----------------------------
-		int blurIndex = 7;
-		medianBlur(frame, frame, blurIndex);
-
-		//--------------------------------Morphology Open Close ----------------------------
-		Morphology_Operations(frame);
-
-		//----------------------------------Canny ---------------------
-		CannyProcessing(frame, detected_edges);
-
-		//----------------------------- Erosion after canny --------------------
-		int erosion_size = 6;
-
-		Mat element = getStructuringElement(cv::MORPH_CROSS,
-			Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-			Point(erosion_size, erosion_size));
-		cv::dilate(detected_edges, detected_edges, element);
-
-		cv::imshow("Erosion After Canny", detected_edges);
-	}
-
-	//----------------------------- Deal with userInput - start --------------------
-	
-	//for (int i = 0; i < userInput.size(); i++)
-	//{
-	//	circle(face_detection_frame, userInput[i], 7, blue, -1, 8);
-	//}
-	//cv::imshow("Source", face_detection_frame);
-
-	//----------------------------- Detect face - start ---------------------
-	double fraction = 1;
-	std::vector<dlib::full_object_detection> shapes_face;
-
-	
-	//shapes_face = face_detection_dlib_image(face_detection_frame);
-	shapes_face = face_detection_update(face_detection_frame);
-	
-	
-
-	//No face is detected
-	if (shapes_face.size() == 0)
-	{
-		return;
-	}
-
-	for (int i = 0; i < 6; i++)
-	{
-		line(face_detection_frame, Point2f(shapes_face[0].part(i).x() / fraction, shapes_face[0].part(i).y() / fraction), 
-			Point2f(shapes_face[0].part(i + 1).x() / fraction, shapes_face[0].part(i + 1).y() / fraction), green, 5, 8, 0);
-	}
-
-	for (int i = 11; i < 16; i++)
-	{
-		line(face_detection_frame, Point2f(shapes_face[0].part(i).x() / fraction, shapes_face[0].part(i).y() / fraction),
-			Point2f(shapes_face[0].part(i + 1).x() / fraction, shapes_face[0].part(i + 1).y() / fraction), green, 5, 8, 0);
-	}
-
-	detectNecessaryPointsOfFace(shapes_face);
-
-	circle(face_detection_frame, left_cheek, 5, green, -1, 8);
-	circle(face_detection_frame, right_cheek, 5, green, -1, 8);
-	circle(face_detection_frame, top_nose, 5, green, -1, 8);
-	circle(face_detection_frame, chin, 5, green, -1, 8);
-	circle(face_detection_frame, symmetric_point, 5, green, -1, 8);
-	circle(face_detection_frame, upper_symmetric_point, 5, green, -1, 8);
-
-	double left_eye_width = shapes_face[0].part(39).x() - shapes_face[0].part(36).x();
-
-	if (distance_from_face_to_shouldersample == 0 || abs(left_eye_width * 3 / 4 - distance_from_face_to_shouldersample) >= 50)
-	{
-		distance_from_face_to_shouldersample = left_eye_width * 3 / 4;
-	}
-
-	if (checking_block == 0 || abs(left_eye_width * 1 / 3 - checking_block) >= 50)
-	{
-		checking_block = left_eye_width * 1.3 / 2;
-	}
-
-	
-	//-----------------------------	Preprocess a part of image to speed up ---------------------------
-	clock_t tmp01 = clock();
-
-	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x);
-
-	Point2f pA = Point2f(max(left_cheek.x - range_of_shoulder_sample*2.5, 0.0), min(left_cheek.y, right_cheek.y));
-	Point2f pB = Point2f(min(right_cheek.x + range_of_shoulder_sample*2.5, double(frame.cols)), pA.y);
-	Point2f pC = Point2f(pB.x, min(symmetric_point.y, float(frame.rows)));
-	Point2f pD = Point2f(pA.x, pC.y);
-
-	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));	
-	Mat CannyWithoutBlurAndMorphology = Preprocessing(sub_frame);
-	
-	//Add preprocessed part to a frame that is in the same size with the old one
-	Mat BiggerCannyWithoutBlurAndMorphology(frame.rows, frame.cols, CV_8UC1, Scalar(0));
-	CannyWithoutBlurAndMorphology.copyTo(BiggerCannyWithoutBlurAndMorphology(cv::Rect(pA.x, pA.y, CannyWithoutBlurAndMorphology.cols, CannyWithoutBlurAndMorphology.rows)));
-
-	clock_t tmp02 = clock();
-	std::cout << " Time for Preprocess: " << float(tmp02 - tmp01) / CLOCKS_PER_SEC << endl;
-	
-
-	//-----------------------------shoulders---------------------------
-	double angle_left = -150;
-	int angle_right = -30;
-	Mat face_detection_frame_Blur_Check = face_detection_frame.clone();
-	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
-
-	detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, true, angle_left, green, true, true);
-	detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, false, angle_right, green, true, true);
-
-	//-----------------------------testing shoulder---------------------------
-	if (isTesting) {
-		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, true, angle_left, blue, false, true);
-		detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, true, angle_left, blue, true, true);
-
-		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, false, angle_right, blue, false, true);
-		detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, false, angle_right, blue, true, true);
-
-		cv::namedWindow("Blur_Check", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Blur_Check", 530, 700);
-		cv::namedWindow("Blur_NoCheck", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Blur_NoCheck", 530, 700);
-
-		cv::imshow("Blur_Check", face_detection_frame_Blur_Check);
-		cv::imshow("Blur_NoCheck", face_detection_frame_Blur_NoCheck);
-
-		cv::namedWindow("Source_NoBlur_Check", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Source_NoBlur_Check", 530, 700);
-		cv::imshow("Source_NoBlur_Check", face_detection_frame);
-		cv::imshow("Canny Only", BiggerCannyWithoutBlurAndMorphology);
-	}	
-	
-	//return face_detection_frame
-	frame = Mat(face_detection_frame);
-
-	std::cout << " Time for Postprocess: " << float(clock() - tmp02) / CLOCKS_PER_SEC << endl;
-}
 
 void MYcppGui::collectColorShoulder()
 {
@@ -1033,6 +968,7 @@ bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color)
 	}
 	return false;
 }
+
 double EuclideanDistance(Point2f p1, Point2f p2) {
 	return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y)); 
 }
@@ -1068,6 +1004,7 @@ cv::vector<Point2f> MYcppGui::findPath(int index, int index_line, cv::vector<cv:
 	cv::vector<Point2f> tmp_new_point_line;
 
 	for (int i = point_collection[index_line + 1].size() - 1; i >= 0; i--)		//Go inside out to choose the outter result
+																				// I will take all later and pick the closest one to previous result
 	{
 		//check angle
 		if (abs(Angle(point_collection[index_line][index], point_collection[index_line + 1][i]) - angle) <= 30) { //used to 25
@@ -1096,19 +1033,7 @@ cv::vector<Point2f> MYcppGui::findPath(int index, int index_line, cv::vector<cv:
 	return new_point_line;
 }
 
-////check if the point is belong to userInput.
-//bool MYcppGui::IsMatchToUserInput(Point point)
-//{
-//	for (int i = 0; i < userInput.size(); i++)
-//	{
-//		if (abs(point.x - userInput[i].x) < 3 && abs(point.y - userInput[i].y) < 3)
-//		{
-//			return true;
-//		}
-//	}
-//
-//	return false;
-//}
+
 
 float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2)
 {
