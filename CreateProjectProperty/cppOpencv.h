@@ -96,13 +96,17 @@ private:
 	double distance_from_face_to_shouldersample;
 	int nth = 1;	//nth frame
 	std::vector<dlib::rectangle> cur_dets;
+	
+	//stickers variable
 	Vector<Mat> stickerFrames;
 	int index_stickerFrames = 0;
+	double relativePostion_sticker;
 
 	Point2f left_cheek = NULL;
 	Point2f right_cheek = NULL;
 	Point2f chin = NULL;
 	Point2f top_nose = NULL;
+	Point2f nose = NULL;
 	Point2f symmetric_point = NULL;
 	Point2f upper_symmetric_point = NULL;
 };

@@ -191,6 +191,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 	cv::namedWindow("Source", CV_WINDOW_NORMAL);
 	cv::resizeWindow("Source", 530, 700);
 
+	//Save the vide0
 	int frame_width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
 	int frame_height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
 	
@@ -402,14 +403,51 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 
 void MYcppGui::AddSticker(Mat &frame) {
 	Point stickerPosition;
-	if (current_shoulderLine[RIGHT].size() != 0) {
-		//At first we take a middle point
-		int index_sticker = current_shoulderLine[RIGHT].size() / 2;
-		stickerPosition = current_shoulderLine[RIGHT][index_sticker];
 
-		//Mat sticker = imread("D:\\605\\Source code\\dataset\\Sticker\\pokemon\\output-0.png", IMREAD_UNCHANGED);
+	if (current_shoulderLine[RIGHT].size() != 0) {
+		if (nth == 1) {
+			//At first we take a middle point
+			int index_sticker = current_shoulderLine[RIGHT].size() *2 / 3;
+			stickerPosition = current_shoulderLine[RIGHT][index_sticker];
+
+			//Get relativePostion_sticker
+			relativePostion_sticker = stickerPosition.x - nose.x;
+		}
+
+		double actualPostion_sticker = relativePostion_sticker + nose.x;
+
+		//The case that sticker should be in the middle of 2 shoulder line
+		if (current_shoulderLine[LEFT].back().x < actualPostion_sticker && actualPostion_sticker < current_shoulderLine[RIGHT].back().x){
+			relativePostion_sticker = current_shoulderLine[LEFT].back().x - nose.x - 5;		//-5 is just in case;
+			actualPostion_sticker = relativePostion_sticker + nose.x;		//refactor later
+		}
+
+		//Find y value of postion sticker
+		int side;
+		if (relativePostion_sticker > 0) {
+			side = RIGHT;
+		}
+		else {
+			side = LEFT;
+		}
+
+		for (int i = 0; i < current_shoulderLine[side].size() - 1; i++) {
+			
+			if ((actualPostion_sticker - current_shoulderLine[side][i].x)*(actualPostion_sticker - current_shoulderLine[side][i + 1].x) <= 0) {
+				float y = FindY_LineEquationThroughTwoPoint(actualPostion_sticker, 
+															current_shoulderLine[side][i], current_shoulderLine[side][i + 1]);
+				stickerPosition = Point2f(actualPostion_sticker, y);
+
+				//Update relativePostion_sticker
+				relativePostion_sticker -= checking_block / 20;		//At first we take checking_block / 2
+				break;
+			}
+
+			
+		}
+
 		Mat sticker = stickerFrames[index_stickerFrames];
-		//at first we take checking_block*2 as width
+		//at first we take checking_block*4 as width
 		double stickerWidth = checking_block * 4;
 		double stickerHeight = stickerWidth / sticker.size().width * sticker.size().height;
 		bool need_to_crop_sticker = false;
@@ -642,6 +680,7 @@ void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detecti
 	right_cheek = Point2f(shapes_face[0].part(12).x() / fraction, shapes_face[0].part(12).y() / fraction);
 	chin = Point2f(shapes_face[0].part(8).x() / fraction, shapes_face[0].part(8).y() / fraction);
 	top_nose = Point2f(shapes_face[0].part(27).x() / fraction, shapes_face[0].part(27).y() / fraction);
+	nose = Point2f(shapes_face[0].part(30).x() / fraction, shapes_face[0].part(30).y() / fraction);
 	symmetric_point = Point2f(chin.x * 2 - top_nose.x, chin.y * 2 - top_nose.y);
 	upper_symmetric_point = Point2f(top_nose.x * 7 / 3 - chin.x * 4 / 3, top_nose.y * 7 / 3 - chin.y * 4 / 3);
 }
