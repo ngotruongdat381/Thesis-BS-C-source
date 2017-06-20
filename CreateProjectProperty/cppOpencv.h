@@ -27,6 +27,9 @@ using namespace cv;
 const clock_t begin_time = clock();
 static clock_t current_time = clock();
 
+enum Status { Walking, Appearing, Disappearing };
+
+
 const Scalar blue = Scalar(255, 0, 0);
 const Scalar green = Scalar(0, 255, 0);
 const Scalar red = Scalar(0, 0, 255);
@@ -34,14 +37,19 @@ const Scalar black = Scalar(0, 0, 0);
 const Scalar yellow = Scalar(0, 255, 255);
 const Scalar organe = Scalar(243, 97, 53);
 
+const int RIGHT_LINE = 1;
+const int LEFT_LINE = 0;
+
 const int RIGHT = 1;
-const int LEFT = 0;
+const int LEFT = -1;
 
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
 
 double EuclideanDistance(Point2f p1, Point2f p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
+double ColourDistance_LAB(Vec3f e1, Vec3f e2);
+
 double Angle(Point2f start, Point2f end);
 float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2);
 bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
@@ -51,6 +59,10 @@ class MYcppGui {
 public:
 	MYcppGui();
 	~MYcppGui();
+
+	//Not good
+	//void collectColorShoulder_LAB();
+	//bool IsMatchToColorCollectionInput_LAB(Vec3f color_LAB);
 
 	Mat GetThumnail(string fileName);
 	int myCppLoadAndShowRGB(string fileName);
@@ -76,7 +88,7 @@ public:
 	bool IsMatchToColorCollectionInput(Vec3b color);
 	void collectColorShoulder();
 	Mat Preprocessing(Mat frame);
-	void GetSticker(string name);
+	void GetSticker(string name, bool changeDirection);
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
@@ -85,8 +97,8 @@ private:
 	vector<vector<Point2f>> current_shoulderLine;
 	vector<vector<Point2f>> simplifized_current_shoulderLine;
 
-	vector<int>	colorValueCollection;
 	vector<Vec3b> colorCollection;
+	//vector<Vec3f> colorCollection_LAB;
 	
 	vector<cv::Point2f> leftRefinedInput;
 	vector<cv::Point2f> rightRefinedInput;
@@ -98,9 +110,15 @@ private:
 	std::vector<dlib::rectangle> cur_dets;
 	
 	//stickers variable
+	string stickerName = "pokemon";
 	Vector<Mat> stickerFrames;
 	int index_stickerFrames = 0;
 	double relativePostion_sticker;
+	double x_ROI_sticker_begin = 0;
+	bool in_cropping_process = false;
+	Status stickerStatus = Walking;
+	bool Disappeared = false;
+	int stickerDirection = LEFT;
 
 	Point2f left_cheek = NULL;
 	Point2f right_cheek = NULL;
@@ -109,4 +127,7 @@ private:
 	Point2f nose = NULL;
 	Point2f symmetric_point = NULL;
 	Point2f upper_symmetric_point = NULL;
+
+	bool TEST_MODE = true;
+	bool STICKER_MODE = false;
 };

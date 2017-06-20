@@ -153,7 +153,7 @@ void MYcppGui::AddUserInput(vector<vector<Point2f>> _userInput)
 	userInputFrame = NULL;
 }
 
-void MYcppGui::GetSticker(string name) {
+void MYcppGui::GetSticker(string name, bool changeDirection) {
 	for (int i = 0; i < 100; i++) {
 		string path = "D:\\605\\Source code\\dataset\\Sticker\\" + name + "\\" + to_string(i) + ".png";
 		Mat image = imread(path, -1);
@@ -161,6 +161,11 @@ void MYcppGui::GetSticker(string name) {
 		{
 			cout << "Read sticker: DONE!" << std::endl;
 			break;
+		}
+		if (changeDirection) {
+			cv::Mat dst;               // dst must be a different Mat
+			cv::flip(image, dst, 1);     // because you can't flip in-place (leads to segfault)
+			image = dst.clone();
 		}
 		stickerFrames.push_back(image);
 	}
@@ -201,7 +206,8 @@ void MYcppGui::VideoProcessing(string fileName) {
 
 	VideoWriter video("output_" + noFile + ".avi", CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
 
-	GetSticker("pokemon");
+	//-------------------------------------------------
+	GetSticker(stickerName, false);
 
 	while (1)
 	{
@@ -217,9 +223,17 @@ void MYcppGui::VideoProcessing(string fileName) {
 		}
 		face_processed = frame.clone();
 		ImageProcessing_WithUserInput(face_processed, false, true);
-		AddSticker(face_processed);
-		cv::imshow("Source", face_processed);
-		video.write(face_processed);
+
+		if (TEST_MODE) {
+			frame = face_processed;
+		}
+
+		if (STICKER_MODE) {
+			AddSticker(frame);
+		}
+		
+		cv::imshow("Source", frame);
+		video.write(frame);
 		
 		nth++;
 		index_stickerFrames++;
@@ -317,6 +331,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	circle(face_detection_frame, left_cheek, 5, green, -1, 8);
 	circle(face_detection_frame, right_cheek, 5, green, -1, 8);
 	circle(face_detection_frame, top_nose, 5, green, -1, 8);
+	circle(face_detection_frame, nose, 5, green, -1, 8);
 	circle(face_detection_frame, chin, 5, green, -1, 8);
 	circle(face_detection_frame, symmetric_point, 5, green, -1, 8);
 	circle(face_detection_frame, upper_symmetric_point, 5, green, -1, 8);
@@ -360,28 +375,23 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	//-----------------------------shoulders---------------------------
 	double angle_left = -150;
 	int angle_right = -30;
-	Mat face_detection_frame_Blur_Check = face_detection_frame.clone();
 	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
 
-	cv::vector<Point2f> leftShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, true, angle_left, green, true, isTesting);
-	cv::vector<Point2f> rightShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, false, angle_right, green, true, isTesting);
-	current_shoulderLine[LEFT] = leftShouderLine;
-	current_shoulderLine[RIGHT] = rightShouderLine;
+	cv::vector<Point2f> leftShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, 
+																true, angle_left, green, true, true); // isTesting
+	cv::vector<Point2f> rightShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, 
+																false, angle_right, green, true, true); //isTesting
+	current_shoulderLine[LEFT_LINE] = leftShouderLine;
+	current_shoulderLine[RIGHT_LINE] = rightShouderLine;
 
 	//-----------------------------testing shoulder---------------------------
 	if (isTesting) {
 		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, true, angle_left, blue, false, true);
-		detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, true, angle_left, blue, true, true);
-
 		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, false, angle_right, blue, false, true);
-		detectShoulderLine(face_detection_frame_Blur_Check, detected_edges, false, angle_right, blue, true, true);
 
-		cv::namedWindow("Blur_Check", CV_WINDOW_NORMAL);
-		cv::resizeWindow("Blur_Check", 530, 700);
 		cv::namedWindow("Blur_NoCheck", CV_WINDOW_NORMAL);
 		cv::resizeWindow("Blur_NoCheck", 530, 700);
 
-		cv::imshow("Blur_Check", face_detection_frame_Blur_Check);
 		cv::imshow("Blur_NoCheck", face_detection_frame_Blur_NoCheck);
 
 		cv::namedWindow("Source_NoBlur_Check", CV_WINDOW_NORMAL);
@@ -403,85 +413,207 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 
 void MYcppGui::AddSticker(Mat &frame) {
 	Point stickerPosition;
+	double distanceMoving = checking_block / 10;
+	bool need_to_crop_sticker = false;
+	Mat sticker = stickerFrames[index_stickerFrames];
+	//at first we take checking_block*4 as width
+	double stickerWidth = checking_block * 4;
+	double stickerHeight = stickerWidth / sticker.size().width * sticker.size().height;
 
-	if (current_shoulderLine[RIGHT].size() != 0) {
+	double new_block_checking = EuclideanDistance(nose, top_nose);
+	double left_neck = nose.x - 2.5*checking_block;
+	double right_neck = nose.x + 2.5 * checking_block;
+
+	
+		//First set up
 		if (nth == 1) {
-			//At first we take a middle point
-			int index_sticker = current_shoulderLine[RIGHT].size() *2 / 3;
-			stickerPosition = current_shoulderLine[RIGHT][index_sticker];
+			int side;
 
-			//Get relativePostion_sticker
-			relativePostion_sticker = stickerPosition.x - nose.x;
-		}
-
-		double actualPostion_sticker = relativePostion_sticker + nose.x;
-
-		//The case that sticker should be in the middle of 2 shoulder line
-		if (current_shoulderLine[LEFT].back().x < actualPostion_sticker && actualPostion_sticker < current_shoulderLine[RIGHT].back().x){
-			relativePostion_sticker = current_shoulderLine[LEFT].back().x - nose.x - 5;		//-5 is just in case;
-			actualPostion_sticker = relativePostion_sticker + nose.x;		//refactor later
-		}
-
-		//Find y value of postion sticker
-		int side;
-		if (relativePostion_sticker > 0) {
-			side = RIGHT;
-		}
-		else {
-			side = LEFT;
-		}
-
-		for (int i = 0; i < current_shoulderLine[side].size() - 1; i++) {
-			
-			if ((actualPostion_sticker - current_shoulderLine[side][i].x)*(actualPostion_sticker - current_shoulderLine[side][i + 1].x) <= 0) {
-				float y = FindY_LineEquationThroughTwoPoint(actualPostion_sticker, 
-															current_shoulderLine[side][i], current_shoulderLine[side][i + 1]);
-				stickerPosition = Point2f(actualPostion_sticker, y);
-
-				//Update relativePostion_sticker
-				relativePostion_sticker -= checking_block / 20;		//At first we take checking_block / 2
-				break;
+			if (stickerDirection == RIGHT) {
+				side = LEFT_LINE;
+			}
+			if (stickerDirection == LEFT) {
+				side = RIGHT_LINE;
 			}
 
+			if (current_shoulderLine[side].size() != 0) {
+				//At first we take a middle point
+				int index_sticker = current_shoulderLine[side].size() - 2;
+				stickerPosition = current_shoulderLine[side][index_sticker];
+
+				//Get relativePostion_sticker
+				relativePostion_sticker = stickerPosition.x - nose.x;
+			}
+		}
+
+ 		double actualPostion_sticker = relativePostion_sticker + nose.x;
+		double central_point = actualPostion_sticker + stickerWidth/2;
+
+		//The case that sticker should be in the middle of neck ==> need to be croped
+		// Disappearing
+		if (left_neck - stickerWidth < actualPostion_sticker && actualPostion_sticker < right_neck) {
+			if (stickerStatus == Walking && Disappeared == false) {
+				//in_cropping_process = true;
+				stickerStatus = Disappearing;
+				//relativePostion_sticker = actualPostion_sticker - nose.x;
+			}
+		}
+
+		// Appearing
+		if (x_ROI_sticker_begin >= (stickerWidth - distanceMoving) && stickerStatus == Disappearing) {
+			//in_cropping_process = true;
+			stickerStatus = Appearing;
+			x_ROI_sticker_begin = 0;	//use as stickerWidth when Appearing
+			//relativePostion_sticker = left_neck - nose.x - distanceMoving;		//Initial the first start when Appearing: distanceMoving
+			//actualPostion_sticker = relativePostion_sticker + nose.x;		//refactor later
+			Disappeared = true;
+		}
+
+		//Walking
+		if (x_ROI_sticker_begin >= (stickerWidth - distanceMoving) && stickerStatus == Appearing) {
+			stickerStatus = Walking;
+			if (stickerDirection == LEFT) {
+				actualPostion_sticker = left_neck - stickerWidth;
+			}
+
+			if (stickerDirection == RIGHT) {
+				actualPostion_sticker = right_neck;
+			}
 			
+			central_point = actualPostion_sticker + stickerWidth / 2;
+			relativePostion_sticker = actualPostion_sticker - nose.x;
+			x_ROI_sticker_begin = 0;
 		}
 
-		Mat sticker = stickerFrames[index_stickerFrames];
-		//at first we take checking_block*4 as width
-		double stickerWidth = checking_block * 4;
-		double stickerHeight = stickerWidth / sticker.size().width * sticker.size().height;
-		bool need_to_crop_sticker = false;
-		if (stickerPosition.x + stickerWidth / 2 > frame.size().width) {
-			stickerWidth = frame.size().width - stickerPosition.x + stickerWidth / 2;
+		if (stickerStatus == Disappearing) {
+			//Update x_ROI_sticker_begin
+			x_ROI_sticker_begin += distanceMoving;
 			need_to_crop_sticker = true;
-		}
-		if (stickerPosition.y - stickerHeight / 2 > frame.size().height) {
-			stickerHeight = frame.size().height - stickerPosition.x + stickerHeight / 2;
-			need_to_crop_sticker = true;
+			if (stickerDirection == LEFT) {
+				stickerPosition = Point2f(right_neck, current_shoulderLine[RIGHT_LINE].back().y);
+			}
+			if (stickerDirection == RIGHT) {
+				stickerPosition = Point2f(left_neck - (stickerWidth - x_ROI_sticker_begin), current_shoulderLine[LEFT_LINE].back().y);
+			}
 		}
 
+		if (stickerStatus == Appearing) {
+			//Update x_ROI_sticker_begin
+			x_ROI_sticker_begin += distanceMoving; 
+			need_to_crop_sticker = true;
+			if (stickerDirection == LEFT) {
+				stickerPosition = Point2f(left_neck - x_ROI_sticker_begin, current_shoulderLine[LEFT_LINE].back().y);
+			}
+			if (stickerDirection == RIGHT) {
+				stickerPosition = Point2f(right_neck, current_shoulderLine[RIGHT_LINE].back().y);
+			}
+			//relativePostion_sticker -= distanceMoving;	//Move
+		}
+
+
+		if (stickerStatus == Walking) {
+			//Find y value of postion sticker
+			int side;
+			if (relativePostion_sticker > 0) {
+				side = RIGHT_LINE;
+			}
+			else {
+				side = LEFT_LINE;
+			}
+
+			//The case that sticker is between 2 shoulder lines
+			//With Walking, at first, we use central_point
+
+			if (current_shoulderLine[LEFT_LINE].back().x < central_point && central_point < current_shoulderLine[RIGHT_LINE].back().x) {
+				stickerPosition = Point2f(central_point - stickerWidth/2, current_shoulderLine[side].back().y);
+				relativePostion_sticker += distanceMoving * stickerDirection;
+			}
+			//The case that the sticker go out of shoulder 
+			else if (current_shoulderLine[LEFT_LINE][0].x > central_point || central_point > current_shoulderLine[RIGHT_LINE][0].x) {
+				//The sticker will stay at the last point of shoulder
+				stickerPosition = Point2f(current_shoulderLine[side][0].x - stickerWidth / 2, current_shoulderLine[side][0].y);
+			}
+			else {
+				for (int i = 0; i < current_shoulderLine[side].size() - 1; i++) {
+
+					if ((central_point - current_shoulderLine[side][i].x)*(central_point - current_shoulderLine[side][i + 1].x) <= 0) {
+						float y = FindY_LineEquationThroughTwoPoint(central_point,
+																	current_shoulderLine[side][i], current_shoulderLine[side][i + 1]);
+						stickerPosition = Point2f(central_point - stickerWidth / 2, y);
+
+						//Update relativePostion_sticker
+						relativePostion_sticker += distanceMoving * stickerDirection;
+						break;
+					}
+				}
+			}
+		}
+		
+		//The cases that sticker go out of the iamge
+		//if (stickerPosition.x + stickerWidth / 2 > frame.size().width) {
+		//	stickerWidth = frame.size().width - stickerPosition.x + stickerWidth / 2;
+		//	need_to_crop_sticker = true;
+		//}
+		//if (stickerPosition.y - stickerHeight / 2 > frame.size().height) {
+		//	stickerHeight = frame.size().height - stickerPosition.x + stickerHeight / 2;
+		//	need_to_crop_sticker = true;
+		//}
+
+		//Crop the sticker
 		if (need_to_crop_sticker) {
 			// Setup a rectangle to define your region of interest
-			cv::Rect stickerROI(0, 0, stickerWidth, stickerHeight);
+			double ratio = sticker.size().width / stickerWidth;		// > 1
 
-			// Crop the full image to that image contained by the rectangle myROI
-			// Note that this doesn't copy the data
-			cv::Mat croppedSticker = sticker(stickerROI);
-			sticker = croppedSticker.clone();
+			if (stickerStatus == Disappearing) {
+				stickerWidth -= x_ROI_sticker_begin;	//Used for croping BG later
+				cv::Rect stickerROI(x_ROI_sticker_begin * ratio, 0, sticker.size().width - x_ROI_sticker_begin * ratio, sticker.size().height);
+
+				// Crop the full image to that image contained by the rectangle myROI
+				// Note that this doesn't copy the data
+				//sticker = sticker(stickerROI);
+
+				cv::Mat croppedSticker = sticker(stickerROI);
+				sticker = croppedSticker.clone();
+			}
+
+			if (stickerStatus == Appearing) {
+				stickerWidth = x_ROI_sticker_begin;
+				cv::Rect stickerROI(0, 0, stickerWidth * ratio, sticker.size().height);
+
+				//Refactor later
+				cv::Mat croppedSticker = sticker(stickerROI);
+				sticker = croppedSticker.clone();
+			}
+		}
+
+		//flip
+		if (stickerDirection == RIGHT) {
+			cv::Mat dst;               // dst must be a different Mat
+			cv::flip(sticker, dst, 1);     // because you can't flip in-place (leads to segfault)
+			sticker = dst.clone();
+		}
+
+		// Turn back when it hits the border || out of shoulder lines
+		if (((stickerPosition.x <= 0 || stickerPosition.x + stickerWidth / 2 <= current_shoulderLine[LEFT_LINE][0].x) && stickerDirection == LEFT)
+			||
+			((stickerPosition.x + stickerWidth >= frame.size().width || stickerPosition.x + stickerWidth / 2 >= current_shoulderLine[RIGHT_LINE][0].x) && stickerDirection == RIGHT))
+		{
+			stickerDirection = -1 * stickerDirection; // change direction
+			actualPostion_sticker = stickerPosition.x + stickerDirection * 5;		// 1 is in case
+			relativePostion_sticker = actualPostion_sticker - nose.x;
+			Disappeared = false;
+			return;
 		}
 
 		Mat cropedBG;
-		//The cases that sticker go out of the iamge
-
-
-		Rect roi(stickerPosition.x - stickerWidth / 2, stickerPosition.y - stickerHeight / 2, stickerWidth, stickerHeight);	
+		
+		Rect roi(stickerPosition.x, stickerPosition.y - stickerHeight / 2, stickerWidth, stickerHeight);	
 		frame(roi).copyTo(cropedBG);
 
 
 		Mat dst = overlrayImage(cropedBG, sticker);
 
 		dst.copyTo(frame(roi));
-	}
 }
 
 Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput)
@@ -695,8 +827,8 @@ void MYcppGui::ShowSampleShoulder() {
 //new fuction
 cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor, bool checkPreviousResult)
 {
-	//cv::namedWindow("Source", CV_WINDOW_NORMAL);
-	//cv::resizeWindow("Source", 530, 700);
+	/*Mat LAB_frame;
+	cvtColor(shoulder_detection_image, LAB_frame, CV_BGR2Lab);*/
 
 	double radian = angle * CV_PI / 180.0;
 	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x); //used to be *2
@@ -790,6 +922,10 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 			
 			//Color check //update later
 			Vec3b color = shoulder_detection_image.at<Vec3b>(Point2f(it.pos().x, it.pos().y + 25));
+			
+			/*Vec3b color = LAB_frame.at<Vec3b>(Point2f(it.pos().x, it.pos().y + 25));
+			Vec3f color_LAB = Vec3f((float)color[0] / 255 * 100, (float)color[1] - 128, (float)color[2] - 128);*/
+
 			bool is_match_color = IsMatchToColorCollectionInput(color);
 			if (!checkColor)
 				is_match_color = true;
@@ -960,12 +1096,9 @@ void MYcppGui::collectColorShoulder()
 			//Get color inside 25px point
 			int x = userInput[k][i].x;
 			int y = userInput[k][i].y + 25;
-			int color_value = userInputFrame.at<uchar>(Point2f(x, y));
 			Vec3b color = userInputFrame.at<Vec3b>(Point2f(x, y));
 		
-			colorValueCollection.push_back(color_value);
-		
-			if (i == 0) 
+			if (i == 0 && k == 0) 
 			{
 				colorCollection.push_back(color);
 				continue;
@@ -997,8 +1130,88 @@ void MYcppGui::collectColorShoulder()
 	}
 }
 
+//void MYcppGui::collectColorShoulder_LAB()
+//{
+//	Mat LAB_frame;
+//	cvtColor(userInputFrame, LAB_frame, CV_BGR2Lab);
+//	for (int k = 0; k < 2; k++) {
+//		for (int i = 0; i < userInput[k].size(); i += 5)
+//		{
+//			//Get color inside 25px point
+//			int x = userInput[k][i].x;
+//			int y = userInput[k][i].y + 25;
+//
+//			Vec3b color = LAB_frame.at<Vec3b>(Point2f(x, y));
+//			//cout << (float)color[0] << ", " << (float)color[1] << ", " << (float)color[2] << endl;
+//			cout << (float)color[0] / 255 * 100 << ", " << (float)color[1] - 128 << ", " << (float)color[2] - 128 << endl;
+//			Vec3f color_LAB = Vec3f((float)color[0] / 255 * 100, (float)color[1] - 128, (float)color[2] - 128);
+//
+//			if (i == 0 && k == 0)
+//			{
+//				colorCollection_LAB.push_back(color_LAB);
+//				circle(userInputFrame, Point2f(x, y), 5, blue, -1, 8);
+//				continue;
+//			}
+//
+//			double minColourDistance = ColourDistance_LAB(color_LAB, colorCollection_LAB[0]);
+//			cout << minColourDistance << endl;
+//
+//			for (int j = 1; j < colorCollection_LAB.size(); j++)
+//			{
+//				double colourDistance = ColourDistance_LAB(color_LAB, colorCollection_LAB[j]);
+//				cout << ColourDistance_LAB(color_LAB, colorCollection_LAB[j]) << endl;
+//				if (colourDistance < minColourDistance)
+//					minColourDistance = colourDistance;
+//			}
+//
+//			circle(userInputFrame, Point2f(x, y), 5, green, -1, 8);
+//
+//			if (minColourDistance > 10)
+//			{
+//				cout << "Min: " << minColourDistance << endl;
+//				colorCollection_LAB.push_back(color_LAB);
+//				circle(userInputFrame, Point2f(x, y), 5, blue, -1, 8);
+//			}
+//
+//			cout << "-----------------" << endl;
+//
+//
+//		}
+//	}
+//}
+//double ColourDistance_LAB(Vec3f e1, Vec3f e2)
+//{
+//	double distance = sqrt((e1[1] - e2[1])*(e1[1] - e2[1]) + (e1[2] - e2[2])*(e1[2] - e2[2]));	//just skipp L, or I can put a bit L later
+//	return distance;
+//}
+//bool MYcppGui::IsMatchToColorCollectionInput_LAB(Vec3f color_LAB)
+//{
+//
+//	for (int i = 0; i < colorCollection_LAB.size(); ++i)
+//	{
+//		if (ColourDistance_LAB(color_LAB, colorCollection_LAB[i]) <= 10){
+//			return true;
+//		}
+//	}
+//	return false;
+//}
+double ColourDistance(Vec3b e1, Vec3b e2)
+{
+	//0 - blue 
+	//1 - green
+	//2 - red
+	long rmean = ((long)e1[2] + (long)e2[2]) / 2;
+	long r = (long)e1[2] - (long)e2[2];
+	long g = (long)e1[1] - (long)e2[1];
+	long b = (long)e1[0] - (long)e2[0];
+	return sqrt((((512 + rmean)*r*r) >> 8) + 4 * g*g + (((767 - rmean)*b*b) >> 8));
+}
+
+
+
 bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color)
 {
+
 	for (int i = 0; i < colorCollection.size(); ++i)
 	{
 		if (ColourDistance(color, colorCollection[i]) <= 30){
@@ -1008,21 +1221,12 @@ bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color)
 	return false;
 }
 
+//
+
 double EuclideanDistance(Point2f p1, Point2f p2) {
 	return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y)); 
 }
 
-double ColourDistance(Vec3b e1, Vec3b e2)
-{
-	//0 - blue 
-	//1 - green
-	//2 - red
-	long rmean = ((long)e1[2] + (long)e2[2]) / 2;
-	long r = (long)e1[2] - (long)e2[2];
-	long g = (long)e1[1] - (long)e2[1];
-    long b = (long)e1[0] - (long)e2[0];
-    return sqrt((((512+rmean)*r*r)>>8) + 4*g*g + (((767-rmean)*b*b)>>8));
-}
 
 double Angle(Point2f start, Point2f end)
 {
