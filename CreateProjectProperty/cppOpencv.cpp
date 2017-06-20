@@ -298,13 +298,11 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	}
 
 	//----------------------------- Deal with userInput - start --------------------
-
 	//for (int i = 0; i < userInput.size(); i++)
 	//{
 	//	circle(face_detection_frame, userInput[i], 7, blue, -1, 8);
 	//}
 	//cv::imshow("Source", face_detection_frame);
-
 	//----------------------------- Detect face - start ---------------------
 	double fraction = 1;
 	std::vector<dlib::full_object_detection> shapes_face;
@@ -316,24 +314,32 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 
 
 	//No face is detected
-	if (shapes_face.size() == 0)
-	{
+	if (shapes_face.size() == 0) {
 		return;
 	}
 
-	for (int i = 0; i < 6; i++)
-	{
+	for (int i = 0; i < 5; i++) {
 		line(face_detection_frame, Point2f(shapes_face[0].part(i).x() / fraction, shapes_face[0].part(i).y() / fraction),
 			Point2f(shapes_face[0].part(i + 1).x() / fraction, shapes_face[0].part(i + 1).y() / fraction), green, 5, 8, 0);
+		line(face_detection_frame, Point2f(shapes_face[0].part(16-i).x() / fraction, shapes_face[0].part(16-i).y() / fraction),
+			Point2f(shapes_face[0].part(16 - (i + 1)).x() / fraction, shapes_face[0].part(16 - (i + 1)).y() / fraction), green, 5, 8, 0);
 	}
 
-	for (int i = 11; i < 16; i++)
-	{
-		line(face_detection_frame, Point2f(shapes_face[0].part(i).x() / fraction, shapes_face[0].part(i).y() / fraction),
-			Point2f(shapes_face[0].part(i + 1).x() / fraction, shapes_face[0].part(i + 1).y() / fraction), green, 5, 8, 0);
-	}
 
 	detectNecessaryPointsOfFace(shapes_face);
+
+	double distance_3_33 = EuclideanDistance(left_cheek, Point2f(shapes_face[0].part(33).x(), shapes_face[0].part(33).y()));
+	double distance_13_33 = EuclideanDistance(right_cheek, Point2f(shapes_face[0].part(33).x(), shapes_face[0].part(33).y()));
+
+	Point2f fixedPoint;
+	if (distance_3_33 > distance_13_33) {
+		fixedPoint = mirror(right_cheek, top_nose, chin);
+		left_cheek = fixedPoint;
+	}
+	if (distance_3_33 < distance_13_33) {
+		fixedPoint = mirror(left_cheek, top_nose, chin);
+		right_cheek = fixedPoint;
+	}
 
 	circle(face_detection_frame, left_cheek, 5, green, -1, 8);
 	circle(face_detection_frame, right_cheek, 5, green, -1, 8);
@@ -816,8 +822,9 @@ std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat
 void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face) {
 	double fraction = 1;
 
-	left_cheek = Point2f(shapes_face[0].part(4).x() / fraction, shapes_face[0].part(4).y() / fraction);
-	right_cheek = Point2f(shapes_face[0].part(12).x() / fraction, shapes_face[0].part(12).y() / fraction);
+	left_cheek = Point2f(shapes_face[0].part(3).x() / fraction, shapes_face[0].part(3).y() / fraction);		//use to be 4
+	right_cheek = Point2f(shapes_face[0].part(13).x() / fraction, shapes_face[0].part(13).y() / fraction);	//used to be 12
+
 	chin = Point2f(shapes_face[0].part(8).x() / fraction, shapes_face[0].part(8).y() / fraction);
 	top_nose = Point2f(shapes_face[0].part(27).x() / fraction, shapes_face[0].part(27).y() / fraction);
 	nose = Point2f(shapes_face[0].part(30).x() / fraction, shapes_face[0].part(30).y() / fraction);
@@ -853,11 +860,11 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 	Point2f head_upper_shoulder;
 	if (leftHandSide)
 	{
-		head_upper_shoulder = Point2f(left_cheek.x - distance_from_face_to_shouldersample, left_cheek.y);
+		head_upper_shoulder = Point2f(left_cheek.x, left_cheek.y);	// - distance_from_face_to_shouldersample
 	}
 	else 
 	{
-		head_upper_shoulder = Point2f(right_cheek.x + distance_from_face_to_shouldersample, right_cheek.y);
+		head_upper_shoulder = Point2f(right_cheek.x, right_cheek.y);		// + distance_from_face_to_shouldersample
 	}
 	
 	Point2f end_upper_shoulder = Point2f(head_upper_shoulder.x + length*2.5*cos(radian), head_upper_shoulder.y - length*2.5*sin(radian));
@@ -1325,6 +1332,32 @@ float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2)
 	int y2 = p2.y;
 	float y_ = (float)(y2 - y1) / (float)(x2 - x1) * (float)(x_ - x1) + y1;
 	return y_;
+}
+
+Point2f mirror(Point2f p, Point2f point0, Point2f point1)
+{
+	double x0 = point0.x;
+	double y0 = point0.y;
+	double x1 = point1.x;
+	double y1 = point1.y;
+
+	double dx, dy, a, b;
+	double x2, y2;
+	Point2f p1; //reflected point to be returned 
+
+	dx = x1 - x0;
+	dy = y1 - y0;
+
+	a = (dx * dx - dy * dy) / (dx * dx + dy*dy);
+	b = 2 * dx * dy / (dx*dx + dy*dy);
+
+	x2 = a * (p.x - x0) + b*(p.y - y0) + x0;
+	y2 = b * (p.x - x0) - a*(p.y - y0) + y0;
+
+	p1 = Point2f(x2, y2);
+
+	return p1;
+
 }
 
 bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2) {
