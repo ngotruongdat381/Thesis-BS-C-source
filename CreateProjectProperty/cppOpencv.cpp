@@ -140,16 +140,23 @@ MYcppGui::~MYcppGui()
 {
 	cvDestroyAllWindows();
 }
+
+vector<vector<Point2f>> SimplifizeResult(vector<vector<Point2f>> result) {
+	vector<vector<Point2f>> Simplifized;
+	Simplifized.resize(result.size());
+	for (int k = 0; k < 2; k++) {
+		approxPolyDP(Mat(result[k]), Simplifized[k], 10, true);
+	}
+	return Simplifized;
+}
+
 void MYcppGui::AddUserInput(vector<vector<Point2f>> _userInput)
 {
 	userInput = _userInput;
 	current_shoulderLine = vector<vector<Point2f>>(_userInput);
 	//Simplifized User Input.
-	simplifizedUserInput.resize(userInput.size());
-	for (int k = 0; k < 2; k++) {
-		approxPolyDP(Mat(userInput[k]), simplifizedUserInput[k], 10, true);
-	}
-
+	simplifizedUserInput = SimplifizeResult(userInput);
+	simplifized_current_shoulderLine = vector<vector<Point2f>>(simplifizedUserInput);
 	userInputFrame = NULL;
 }
 
@@ -378,11 +385,12 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
 
 	cv::vector<Point2f> leftShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, 
-																true, angle_left, green, true, true); // isTesting
+																true, angle_left, green, true, false); // isTesting
 	cv::vector<Point2f> rightShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, 
-																false, angle_right, green, true, true); //isTesting
+		false, angle_right, green, true, false); //isTesting
 	current_shoulderLine[LEFT_LINE] = leftShouderLine;
 	current_shoulderLine[RIGHT_LINE] = rightShouderLine;
+	simplifized_current_shoulderLine = SimplifizeResult(current_shoulderLine);
 
 	//-----------------------------testing shoulder---------------------------
 	if (isTesting) {
@@ -863,6 +871,7 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 	intersection(head_upper_shoulder, end_upper_shoulder, symmetric_point, end_bottom_shoulder, intersection_point_01);
 
 	
+	Point2f intersection_point_with_previous_result;
 
 	//Take points on shoulder_sample follow "checking_block" and build LineIterator from these point to symmetric_point (but stop at bottom shoulder_line
 	for (int j = 0; abs(checking_block*j*cos(radian)) < range_of_shoulder_sample*2.5; j++) {
@@ -888,24 +897,43 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 		
 
 
-		//Find intersection between "it" and Simplifized User Input
-		Point2f intersection_point_with_previous_result = simplifizedUserInput[!leftHandSide][0];
+		if (checkPreviousResult) {
+			//Find intersection between "it" and Simplifized User Input
 
-		bool is_intersect = false;
-
-		//left hand simplifizedUserInput is 0 which == !leftHandSide and otherwises
-		for (int i = 0; i < simplifizedUserInput[!leftHandSide].size() - 1; i++) {
-			if (doIntersect(intersection_point, current_point, simplifizedUserInput[!leftHandSide][i], simplifizedUserInput[!leftHandSide][i + 1])) {
-				intersection(intersection_point, current_point, simplifizedUserInput[!leftHandSide][i], simplifizedUserInput[!leftHandSide][i + 1]
-					, intersection_point_with_previous_result);
-				is_intersect = true;
-				break;
+			//THe case we re between 2 shoulder lines
+			if (j == 0) {
+				bool check_intersected = doIntersect(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide].back(),
+					simplifized_current_shoulderLine[!leftHandSide][simplifized_current_shoulderLine[!leftHandSide].size() - 2]);
+				if (!check_intersected) {
+					Point2f intersection_point02;
+					intersection(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide].back(),
+						simplifized_current_shoulderLine[!leftHandSide][simplifized_current_shoulderLine[!leftHandSide].size() - 2],
+						intersection_point02);
+					simplifized_current_shoulderLine[!leftHandSide].push_back(intersection_point02);
+				}
 			}
-		}
 
-		//compare curent point with the first point of simplifizedUserInput
-		if (!is_intersect && current_point.y > simplifizedUserInput[!leftHandSide][0].y) {
-			intersection_point_with_previous_result = simplifizedUserInput[!leftHandSide][simplifizedUserInput[!leftHandSide].size() - 1];
+			//If the no suitable result, intersection_point_with_previous_result will be the nearest point to neck
+			intersection_point_with_previous_result = simplifized_current_shoulderLine[!leftHandSide].back();
+
+			bool is_intersect = false;
+			//left hand simplifized_current_shoulderLine is 0 which == !leftHandSide and otherwises
+			for (int i = 0; i < simplifized_current_shoulderLine[!leftHandSide].size() - 1; i++) {
+				if (doIntersect(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide][i], simplifized_current_shoulderLine[!leftHandSide][i + 1]))
+				{
+					intersection(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide][i], simplifized_current_shoulderLine[!leftHandSide][i + 1]
+						, intersection_point_with_previous_result);
+					is_intersect = true;
+					break;
+				}
+			}
+
+			//THe case we re out of the shoulder line
+			if (!is_intersect) {
+				intersection(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide][0], simplifized_current_shoulderLine[!leftHandSide][1]
+					, intersection_point_with_previous_result);
+			}
+			//circle(shoulder_detection_image, intersection_point_with_previous_result, 10, green, -1, 8);
 		}
 
 		cv::vector<Point2f> point_line;
@@ -937,8 +965,9 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 					is_close_to_previous_result = false;
 				}
 				else {
-					//circle(shoulder_detection_image, current_point, 1, red, -1, 8);
+					circle(shoulder_detection_image, Point2f(it.pos().x, it.pos().y), 1, black, -1, 8);
 				}
+				
 			}
 
 			if (value_in_edge_map == 255 && is_match_color)
@@ -958,15 +987,21 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 		point_collection.push_back(point_line);
 	}
 
-	//Draw simplifizedUserInput for testing
-	for (int i = 0; i < simplifizedUserInput[!leftHandSide].size(); i++) {
-		circle(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], 5, yellow, -1, 8);
-		if (i < simplifizedUserInput[!leftHandSide].size() - 1) {
-			//line(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], simplifizedUserInput[!leftHandSide][i + 1], yellow, 3, 8, 0);
+	////Draw simplifizedUserInput for testing
+	//for (int i = 0; i < simplifizedUserInput[!leftHandSide].size(); i++) {
+	//	circle(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], 5, yellow, -1, 8);
+	//	if (i < simplifizedUserInput[!leftHandSide].size() - 1) {
+	//		//line(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], simplifizedUserInput[!leftHandSide][i + 1], yellow, 3, 8, 0);
+	//	}
+	//}
+
+	//Draw simplifized_current_shoulderLine for testing
+	for (int i = 0; i < simplifized_current_shoulderLine[!leftHandSide].size(); i++) {
+		circle(shoulder_detection_image, simplifized_current_shoulderLine[!leftHandSide][i], 5, yellow, -1, 8);
+		if (i < simplifized_current_shoulderLine[!leftHandSide].size() - 1) {
+			//line(shoulder_detection_image, simplifized_current_shoulderLine[!leftHandSide][i], simplifized_current_shoulderLine[!leftHandSide][i + 1], yellow, 3, 8, 0);
 		}
-
 	}
-
 
 	//take potential point for shoulder line by checking angle of these line
 	int angle_for_arm = -75;

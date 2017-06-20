@@ -32,6 +32,10 @@ vector<vector<Point2f>> readUserInput(string path)
 		}
 		previous_a = a;
 	}
+	//Make the input follow this way: --->  <---
+	reverse(leftShoulderInput.begin(), leftShoulderInput.end());
+	reverse(rightShoulderInput.begin(), rightShoulderInput.end());
+
 	inputs.push_back(leftShoulderInput);
 	inputs.push_back(rightShoulderInput);
 
