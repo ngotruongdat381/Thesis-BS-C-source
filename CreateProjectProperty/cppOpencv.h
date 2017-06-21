@@ -90,6 +90,7 @@ public:
 	void collectColorShoulder();
 	Mat Preprocessing(Mat frame);
 	void GetSticker(string name, bool changeDirection);
+	Mat MYcppGui::RemoveUnneccessaryImage(Mat& frame);
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
@@ -100,9 +101,6 @@ private:
 
 	vector<Vec3b> colorCollection;
 	//vector<Vec3f> colorCollection_LAB;
-	
-	vector<cv::Point2f> leftRefinedInput;
-	vector<cv::Point2f> rightRefinedInput;
 
 	vector<Mat> featureCollection;
 	double checking_block;

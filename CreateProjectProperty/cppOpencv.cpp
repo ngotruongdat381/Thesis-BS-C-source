@@ -374,7 +374,11 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	Point2f pC = Point2f(pB.x, min(symmetric_point.y, float(frame.rows)));
 	Point2f pD = Point2f(pA.x, pC.y);
 
+	//delete unneccessary part ==>improve later
+	//Mat deleted_frame = RemoveUnneccessaryImage(src);
+
 	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));
+
 	Mat CannyWithoutBlurAndMorphology = Preprocessing(sub_frame);
 
 	//Add preprocessed part to a frame that is in the same size with the old one
@@ -839,6 +843,39 @@ void MYcppGui::ShowSampleShoulder() {
 	cv::imshow("Shouldersample", featureCollection[1]);
 }
 
+Mat MYcppGui::RemoveUnneccessaryImage(Mat& frame) {
+	double angle_left = -150;
+	int angle_right = -30;
+
+	double radian_left = angle_left * CV_PI / 180.0;
+	double radian_right = angle_right * CV_PI / 180.0;
+	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x); //used to be *2
+	double length = abs(range_of_shoulder_sample / cos(radian_left));
+
+	//move these point a bit to not effect edge detection (10px)
+	Point2f head_bottom_shoulder = Point2f(chin.x, chin.y + 10);
+	Point2f end_bottom_shoulder_left = Point2f(head_bottom_shoulder.x + length*cos(radian_left) + 10, head_bottom_shoulder.y - length*sin(radian_left));
+	Point2f end_second_bottom_shoulder_left = Point2f(end_bottom_shoulder_left.x, symmetric_point.y);
+	Point2f end_bottom_shoulder_right = Point2f(head_bottom_shoulder.x + length*cos(radian_right) - 10, head_bottom_shoulder.y - length*sin(radian_right));
+	Point2f end_second_bottom_shoulder_right = Point2f(end_bottom_shoulder_right.x, symmetric_point.y);
+	vector<Point> vertices01{ end_second_bottom_shoulder_left, end_bottom_shoulder_left, head_bottom_shoulder, end_bottom_shoulder_right, end_second_bottom_shoulder_right };
+
+	Point2f head_cheeck_remover_left = Point2f(left_cheek.x - 10, left_cheek.y);
+	Point2f end_cheeck_remover_left_01 = Point2f(0, left_cheek.y);
+	Point2f end_cheeck_remover_left_02 = Point2f(0, left_cheek.y + left_cheek.x / sqrt(3));
+	vector<Point> vertices02{ head_cheeck_remover_left, end_cheeck_remover_left_01, end_cheeck_remover_left_02 };
+
+	Point2f head_cheeck_remover_right = Point2f(right_cheek.x + 10, right_cheek.y);
+	Point2f end_cheeck_remover_right_01 = Point2f(frame.size().width, right_cheek.y);
+	Point2f end_cheeck_remover_right_02 = Point2f(frame.size().width, right_cheek.y + (frame.size().width - right_cheek.x) / sqrt(3));
+	vector<Point> vertices03{ head_cheeck_remover_right, end_cheeck_remover_right_01, end_cheeck_remover_right_02 };
+
+	Mat dst = frame.clone();
+	vector<vector<Point>> pts{ vertices01, vertices02, vertices03 };
+
+	fillPoly(dst, pts, black);
+	return dst;
+}
 //new fuction
 cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor, bool checkPreviousResult)
 {
