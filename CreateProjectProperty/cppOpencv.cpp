@@ -5,6 +5,92 @@
 //using namespace std;
 //using namespace cv;
 
+Mat ChangeBrightness(Mat& image) {
+	double alpha = 1.0; /*< Simple contrast control */
+	int beta = 50;       /*< Simple brightness control */
+	Mat new_image = Mat::zeros(image.size(), image.type());
+
+	for (int y = 0; y < image.rows; y++) {
+		for (int x = 0; x < image.cols; x++) {
+			for (int c = 0; c < 3; c++) {
+				new_image.at<Vec3b>(y, x)[c] = saturate_cast<uchar>(alpha*(image.at<Vec3b>(y, x)[c]) + beta);
+			}
+		}
+	}
+	return new_image;
+}
+
+bool R1(int R, int G, int B) {
+	bool e1 = (R>95) && (G>40) && (B>20) && ((max(R, max(G, B)) - min(R, min(G, B)))>15) && (abs(R - G)>15) && (R>G) && (R>B);
+	bool e2 = (R>220) && (G>210) && (B>170) && (abs(R - G) <= 15) && (R>B) && (G>B);
+	return (e1 || e2);
+}
+
+bool R2(float Y, float Cr, float Cb) {
+	bool e3 = Cr <= 1.5862*Cb + 20;
+	bool e4 = Cr >= 0.3448*Cb + 76.2069;
+	bool e5 = Cr >= -4.5652*Cb + 234.5652;
+	bool e6 = Cr <= -1.15*Cb + 301.75;
+	bool e7 = Cr <= -2.2857*Cb + 432.85;
+	return e3 && e4 && e5 && e6 && e7;
+}
+
+bool R3(float H, float S, float V) {
+	return (H<25) || (H > 230);
+}
+
+Mat GetSkin(Mat const &src) {
+	// allocate the result matrix
+	Mat dst = src.clone();
+
+	Vec3b cwhite = Vec3b::all(255);
+	Vec3b cblack = Vec3b::all(0);
+
+	Mat src_ycrcb, src_hsv;
+	// OpenCV scales the YCrCb components, so that they
+	// cover the whole value range of [0,255], so there's
+	// no need to scale the values:
+	cvtColor(src, src_ycrcb, CV_BGR2YCrCb);
+	// OpenCV scales the Hue Channel to [0,180] for
+	// 8bit images, so make sure we are operating on
+	// the full spectrum from [0,360] by using floating
+	// point precision:
+	src.convertTo(src_hsv, CV_32FC3);
+	cvtColor(src_hsv, src_hsv, CV_BGR2HSV);
+	// Now scale the values between [0,255]:
+	normalize(src_hsv, src_hsv, 0.0, 255.0, NORM_MINMAX, CV_32FC3);
+
+	for (int i = 0; i < src.rows; i++) {
+		for (int j = 0; j < src.cols; j++) {
+
+			Vec3b pix_bgr = src.ptr<Vec3b>(i)[j];
+			int B = pix_bgr.val[0];
+			int G = pix_bgr.val[1];
+			int R = pix_bgr.val[2];
+			// apply rgb rule
+			bool a = R1(R, G, B);
+
+			Vec3b pix_ycrcb = src_ycrcb.ptr<Vec3b>(i)[j];
+			int Y = pix_ycrcb.val[0];
+			int Cr = pix_ycrcb.val[1];
+			int Cb = pix_ycrcb.val[2];
+			// apply ycrcb rule
+			bool b = R2(Y, Cr, Cb);
+
+			Vec3f pix_hsv = src_hsv.ptr<Vec3f>(i)[j];
+			float H = pix_hsv.val[0];
+			float S = pix_hsv.val[1];
+			float V = pix_hsv.val[2];
+			// apply hsv rule
+			bool c = R3(H, S, V);
+
+			if (!(a&&b&&c))
+				dst.ptr<Vec3b>(i)[j] = cblack;
+		}
+	}
+	return dst;
+}
+
 
 void overlay_whiteBackground_image() {
 	//Add mustache
@@ -70,6 +156,27 @@ Mat overlrayImage(Mat background, Mat foreground) {
 	return dst;
 }
 
+void overlayMask(Mat &background, Mat &foreground, Mat& mask) {
+	Mat m, m1;
+	vector<Mat> maskChannels(3), result_mask(3);
+	split(foreground, maskChannels);
+	bitwise_and(maskChannels[0], mask, result_mask[0]);
+	bitwise_and(maskChannels[1], mask, result_mask[1]);
+	bitwise_and(maskChannels[2], mask, result_mask[2]);
+	merge(result_mask, m);         //    imshow("m",m);
+
+	mask = 255 - mask;
+	vector<Mat> srcChannels(3);
+	split(background, srcChannels);
+	bitwise_and(srcChannels[0], mask, result_mask[0]);
+	bitwise_and(srcChannels[1], mask, result_mask[1]);
+	bitwise_and(srcChannels[2], mask, result_mask[2]);
+	merge(result_mask, m1);            imshow("m1", m1);
+
+	addWeighted(m, 1, m1, 1, 0, m1);        imshow("m2", m1);
+
+	m1.copyTo(background);
+}
 
 // Given three colinear points p, q, r, the function checks if
 // point q lies on line segment 'pr'
@@ -388,9 +495,14 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	clock_t tmp02 = clock();
 	std::cout << " Time for Preprocess: " << float(tmp02 - tmp01) / CLOCKS_PER_SEC << endl;
 
+	//-----------------------------neck---------------------------
+	//int angle_neck_left = -95;
+	//int angle_neck_right = -85;
+	//cv::vector<Point2f> leftNeckLine = DetectNeckLines(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, shapes_face, true, angle_neck_left);
+	//cv::vector<Point2f> rightNeckLine = DetectNeckLines(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, shapes_face, false, angle_neck_right);
 
 	//-----------------------------shoulders---------------------------
-	double angle_left = -150;
+	int angle_left = -150;
 	int angle_right = -30;
 	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
 
@@ -429,6 +541,8 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	std::cout << " Time for Postprocess: " << float(clock() - tmp02) / CLOCKS_PER_SEC << endl;
 }
 
+
+
 void MYcppGui::AddSticker(Mat &frame) {
 	Point stickerPosition;
 	double distanceMoving = checking_block / 10;
@@ -456,7 +570,7 @@ void MYcppGui::AddSticker(Mat &frame) {
 
 			if (current_shoulderLine[side].size() != 0) {
 				//At first we take a middle point
-				int index_sticker = current_shoulderLine[side].size() - 2;
+				int index_sticker = current_shoulderLine[side].size() - 1;
 				stickerPosition = current_shoulderLine[side][index_sticker];
 
 				//Get relativePostion_sticker
@@ -627,11 +741,27 @@ void MYcppGui::AddSticker(Mat &frame) {
 		
 		Rect roi(stickerPosition.x, stickerPosition.y - stickerHeight / 2, stickerWidth, stickerHeight);	
 		frame(roi).copyTo(cropedBG);
-
-
+		Mat cloneCropedBG = cropedBG.clone();
 		Mat dst = overlrayImage(cropedBG, sticker);
 
 		dst.copyTo(frame(roi));
+
+		//Try to add Mask overlay
+		//if (stickerStatus == Appearing || stickerStatus == Disappearing) {
+		//	/*Mat cropedBG02;
+		//	Rect roi(left_cheek.x, left_cheek.y, right_cheek.x - left_cheek.x, chin.y + 2*checking_block - left_cheek.y);
+		//	frame(roi).copyTo(cropedBG02);*/
+		//	Mat LightUpCrop = ChangeBrightness(cloneCropedBG);
+		//	Mat skin = GetSkin(LightUpCrop);
+
+		//	Mat mask1, mask2;
+		//	mask1 = skin.clone();
+		//	cvtColor(mask1, mask2, CV_BGR2GRAY);
+		//	threshold(mask2, mask2, 0, 255, THRESH_BINARY);
+
+		//	overlayMask(dst, cloneCropedBG, mask2);
+		//	dst.copyTo(frame(roi));
+		//}
 }
 
 Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput)
@@ -876,6 +1006,182 @@ Mat MYcppGui::RemoveUnneccessaryImage(Mat& frame) {
 	fillPoly(dst, pts, black);
 	return dst;
 }
+
+Vec3b AverageColor(Mat& frame, double x, double y) {
+	Vec3b color;
+	if (x - 2 < 0 || y - 2 < 0 || x + 2 > frame.size().width || y + 2 > frame.size().height) {
+		color = frame.at<Vec3b>(Point2f(x, y));
+		return color;
+	}
+
+	cv::Mat roiMat = frame(cv::Rect(x - 2, y - 2, 5, 5));
+	cv::Scalar mean;
+	mean = cv::mean(roiMat);
+	color = Vec3b(mean[0], mean[1], mean[2]);
+	return color;
+}
+
+Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f end_neck) {
+	Vector<Vec3b> colorNeckCollection;
+	//LineIterator 
+	LineIterator it(frame, head_neck, end_neck, 8, false);
+	
+	for (int i = 0; i < it.count; i += 1, ++it)
+	{
+		if (i % 10 != 0) {	//move 10px
+			continue;
+		}
+		int x = it.pos().x;
+		int y = it.pos().y;
+
+		//Vec3b color = frame.at<Vec3b>(Point2f(x, y));
+		Vec3b color = AverageColor(frame, x, y);
+
+		if (i == 0)
+		{
+			colorNeckCollection.push_back(color);
+			continue;
+		}
+
+		double minColourDistance = ColourDistance(color, colorNeckCollection[0]);
+		cout << minColourDistance << endl;
+
+		for (int j = 1; j < colorNeckCollection.size(); j++)
+		{
+			double colourDistance = ColourDistance(color, colorNeckCollection[j]);
+			cout << colourDistance << endl;
+			if (colourDistance < minColourDistance)
+				minColourDistance = colourDistance;
+		}
+
+		circle(frame, Point2f(x, y), 5, green, -1, 8);
+
+		if (minColourDistance > 20)
+		{
+			colorNeckCollection.push_back(color);
+			circle(frame, Point2f(x, y), 5, blue, -1, 8);
+		}
+
+		cout << "-----------------" << endl;
+	}
+	return colorNeckCollection;
+}
+
+cv::vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, std::vector<dlib::full_object_detection> shapes_face, bool leftHandSide, int angle_neck) {
+	
+	Point2f head_neck;
+	Point2f end_neck;
+	Point2f head_neck02;
+	Point2f end_neck02;
+	Vector<Vec3b> colors;
+
+	if (leftHandSide){
+		head_neck = Point2f(shapes_face[0].part(3).x(), shapes_face[0].part(4).y());
+		head_neck02 = Point2f(shapes_face[0].part(6).x() + 5, head_neck.y);		//10 is just in case
+		end_neck = Point2f(head_neck.x, chin.y + checking_block);
+		end_neck02 = Point2f(head_neck02.x, end_neck.y);
+		//collect color of skin this area
+		colors = collectColorNeck(shoulder_detection_image, head_neck02, end_neck02);
+
+		Point2f point04 = Point2f(shapes_face[0].part(4).x() + 10, shapes_face[0].part(4).y()); //5 is just in case
+		Point2f point06 = Point2f(shapes_face[0].part(6).x() + 5, shapes_face[0].part(6).y());
+		Vector<Vec3b> Morecolors = collectColorNeck(shoulder_detection_image, point04, point06);
+		for (int i = 0; i < Morecolors.size() - 1; i++) {
+			colors.push_back(Morecolors[i]);
+		}
+	}
+	else {
+		head_neck = Point2f(shapes_face[0].part(10).x() - 5, shapes_face[0].part(12).y());
+		head_neck02 = Point2f(shapes_face[0].part(13).x(), head_neck.y);		//10 is just in case
+		end_neck = Point2f(head_neck.x, chin.y + checking_block);
+		end_neck02 = Point2f(head_neck02.x, end_neck.y);
+		//collect color of skin this area
+		colors = collectColorNeck(shoulder_detection_image, head_neck, end_neck);
+
+		Point2f point12  = Point2f(shapes_face[0].part(12).x() - 10, shapes_face[0].part(12).y()); //5 is just in case
+		Point2f point10  = Point2f(shapes_face[0].part(10).x() - 5, shapes_face[0].part(10).y());
+		Vector<Vec3b> Morecolors = collectColorNeck(shoulder_detection_image, point12, point10);
+		for (int i = 0; i < Morecolors.size() - 1; i++) {
+			colors.push_back(Morecolors[i]);
+		}
+	}
+
+	
+	line(shoulder_detection_image, head_neck, end_neck, yellow, 3, 8, 0);
+	line(shoulder_detection_image, head_neck02, end_neck02, yellow, 3, 8, 0);
+
+	int value_in_edge_map = 0;
+	cv::vector<cv::vector<Point2f>> point_collection;
+
+	for (int i = 0; head_neck.y + i*checking_block / 2 < end_neck.y; i++) {
+		double Y = head_neck.y + i*checking_block / 2;
+		cv::vector<Point2f> point_line;
+
+		double distance_01_to_02 = abs(head_neck.x - head_neck02.x);
+		for (int j = 0; j * 2 < distance_01_to_02; j++) {
+			double X = head_neck.x + j * 2;
+			value_in_edge_map = detected_edges.at<uchar>(Y, X);	// y first, x later
+			
+			if (value_in_edge_map == 255) {
+				//Color check 
+				//Vec3b color = shoulder_detection_image.at<Vec3b>(Point2f(X, Y));
+				Vec3b color = AverageColor(shoulder_detection_image, X, Y);
+				bool is_match_color = IsMatchColor(color, colors, 30);		//30 is good but sometimes too much
+
+				if (is_match_color){
+					if (point_line.empty() || EuclideanDistance(Point2f(X, Y), point_line.back()) >= 5)	//10 
+					{
+						point_line.push_back(Point2f(X, Y));
+
+					}
+				}
+				
+			}
+		}
+		point_collection.push_back(point_line);
+	}
+
+	//Just for testing and debug
+	for (int a = 0; a < point_collection.size() - 1; a++) {
+		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
+		{
+			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
+			{
+				//Check difference of angle
+				if (abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle_neck) <= 15)
+				{
+					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], yellow, 3, 8, 0);
+				}
+			}
+		}
+	}
+	
+	cv::vector<cv::vector<Point2f>> possible_lines;
+
+	for (int i = 0; i < point_collection.size(); i++) {
+		for (int j = 0; j < point_collection[i].size(); j++) {
+			cv::vector<Point2f> path = findPath(j, i, point_collection, angle_neck);
+
+			if (possible_lines.empty() || path.size() > possible_lines.back().size())
+			{
+				if (!path.empty())
+				{
+					possible_lines.push_back(path);
+				}
+			}
+		}
+	}
+	if (!possible_lines.empty()) {
+		cv::vector<Point2f> neck_line = possible_lines.back();
+
+		for (int i = 0; i < neck_line.size() - 1; i++)
+		{
+			line(shoulder_detection_image, neck_line[i], neck_line[i + 1], green, 5, 8, 0);
+		}
+		return neck_line;
+	}
+}
+
 //new fuction
 cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color, bool checkColor, bool checkPreviousResult)
 {
@@ -1294,6 +1600,17 @@ bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color)
 	for (int i = 0; i < colorCollection.size(); ++i)
 	{
 		if (ColourDistance(color, colorCollection[i]) <= 30){
+			return true;
+		}
+	}
+	return false;
+}
+
+bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon)
+{
+	for (int i = 0; i < Collection.size(); ++i)
+	{
+		if (ColourDistance(color, Collection[i]) <= epsilon){
 			return true;
 		}
 	}

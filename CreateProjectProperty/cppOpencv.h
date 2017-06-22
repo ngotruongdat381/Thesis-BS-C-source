@@ -82,12 +82,18 @@ public:
 										, bool checkColor, bool checkPreviousResult);
 	void AddSticker(Mat &frame);
 
+	cv::vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, std::vector<dlib::full_object_detection> shapes_face, 
+		bool leftHandSide, int angle_neck);
+
 	cv::vector<Point2f> findPath(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
 	void MYcppGui::ShowSampleShoulder();
 	void AddUserInput(vector<vector<Point2f>> _userInput);
 	bool MYcppGui::IsMatchToUserInput(Point2f point);
 	bool IsMatchToColorCollectionInput(Vec3b color);
+	bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon);
+
 	void collectColorShoulder();
+	Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f end_neck);
 	Mat Preprocessing(Mat frame);
 	void GetSticker(string name, bool changeDirection);
 	Mat MYcppGui::RemoveUnneccessaryImage(Mat& frame);
@@ -128,5 +134,5 @@ private:
 	Point2f upper_symmetric_point = NULL;
 
 	bool TEST_MODE = true;
-	bool STICKER_MODE = false;
+	bool STICKER_MODE = true;
 };
