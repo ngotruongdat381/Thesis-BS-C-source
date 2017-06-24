@@ -902,7 +902,7 @@ std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat fra
 	std::cout << " Time for detect face: " << float(clock() - tmp) / CLOCKS_PER_SEC << endl;
 
 	cout << "Number of faces detected: " << cur_dets.size() << endl;
-	
+
 	tmp = clock();
 	// Find the pose of each face.
 	std::vector<dlib::full_object_detection> new_shapes;
@@ -918,32 +918,29 @@ std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat fra
 
 		// Landmark detection on full sized image
 		dlib::full_object_detection shape = shape_predictor(cimg, r);
-		
-		//cout << "number of parts: " << shape.num_parts() << endl;
-		//for (int i = 0; i < shape.num_parts(); i++) {
-		//cout << "<part name='" << i << "' x='" << shape.part(i).x() << "' y='" << shape.part(i).y() << "'/>" << endl;
-		//}
-
-		// You get the idea, you can get all the face part locations if
-		// you want them.  Here we just store them in shapes so we can
-		// put them on the screen.
-
 		new_shapes.push_back(shape);
 	}
+
+	if (cur_dets.size() == 0) {
+		cur_dets = detector(cimg);
+		cout << "AGAIN: Number of faces detected: " << cur_dets.size() << endl;
+
+		for (unsigned long j = 0; j < cur_dets.size(); ++j)
+		{
+			// Resize obtained rectangle for full resolution image.
+			dlib::rectangle r(
+				(long)(cur_dets[j].left()),
+				(long)(cur_dets[j].top()),
+				(long)(cur_dets[j].right()),
+				(long)(cur_dets[j].bottom())
+				);
+
+			// Landmark detection on full sized image
+			dlib::full_object_detection shape = shape_predictor(cimg, r);
+			new_shapes.push_back(shape);
+		}
+	}
 	std::cout << " Time for landmark face: " << float(clock() - tmp) / CLOCKS_PER_SEC << endl;
-
-	//shapes.assign(shapess.begin(), shapess.end());
-	// Now let's view our face poses on the screen.
-	//win.clear_overlay();
-	//win.set_image(cimg);
-	//win.add_overlay(render_face_detections(*shapes));
-
-	// We can also extract copies of each face that are cropped, rotated upright,
-	// and scaled to a standard size as shown here:
-	//dlib::array<array2d<rgb_pixel> > face_chips;
-	//extract_image_chips(cimg, get_face_chip_details(*shapes), face_chips);
-	//win_faces.set_image(tile_images(face_chips));
-
 
 	//std::getchar();
 	return new_shapes;
