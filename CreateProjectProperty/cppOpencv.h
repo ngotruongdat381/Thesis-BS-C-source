@@ -50,6 +50,7 @@ double EuclideanDistance(Point2f p1, Point2f p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
 double ColourDistance_LAB(Vec3f e1, Vec3f e2);
 
+string GetTime();
 double Angle(Point2f start, Point2f end);
 float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2);
 bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
@@ -77,22 +78,27 @@ public:
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat frame);
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame);
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
+	void MYcppGui::CorrectFaceDetection(std::vector<dlib::full_object_detection>& shapes_face);
+
 	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
 	cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color
 										, bool checkColor, bool checkPreviousResult);
 	void AddSticker(Mat &frame);
 
-	cv::vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, std::vector<dlib::full_object_detection> shapes_face, 
+	cv::vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, Mat mask_skin, std::vector<dlib::full_object_detection> shapes_face,
 		bool leftHandSide, int angle_neck);
 
 	cv::vector<Point2f> findPath(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
-	void MYcppGui::ShowSampleShoulder();
-	void AddUserInput(vector<vector<Point2f>> _userInput);
+	void AddUserInput(string path);
+	vector<vector<Point2f>> readUserInput(string path);
+
 	bool MYcppGui::IsMatchToUserInput(Point2f point);
 	bool IsMatchToColorCollectionInput(Vec3b color);
 	bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon);
 
-	void collectColorShoulder();
+	void collectColorShoulderFromInput();
+	void MYcppGui::collectColor(Mat&frame, vector<Vec3b> &colorCollection, Point2f head_point, Point2f end_point, double epsilon);
+	void MYcppGui::collectColorShoulder(Mat& frame);
 	Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f end_neck);
 	Mat Preprocessing(Mat frame);
 	void GetSticker(string name, bool changeDirection);
@@ -105,12 +111,10 @@ private:
 	vector<vector<Point2f>> current_shoulderLine;
 	vector<vector<Point2f>> simplifized_current_shoulderLine;
 
-	vector<Vec3b> colorCollection;
+	vector<Vec3b> colorCollection_Shoulder;
 	//vector<Vec3f> colorCollection_LAB;
 
-	vector<Mat> featureCollection;
 	double checking_block;
-	double distance_from_face_to_shouldersample;
 	int nth = 1;	//nth frame
 	std::vector<dlib::rectangle> cur_dets;
 	
@@ -134,5 +138,6 @@ private:
 	Point2f upper_symmetric_point = NULL;
 
 	bool TEST_MODE = true;
-	bool STICKER_MODE = true;
+	bool STICKER_MODE = false;
+	bool TRACKING_MODE = false;
 };

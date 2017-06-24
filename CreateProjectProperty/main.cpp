@@ -2,45 +2,6 @@
 #include <sstream>
 #include <string>
 
-vector<vector<Point2f>> readUserInput(string path)
-{
-	vector<cv::Point2f> leftShoulderInput;
-	vector<cv::Point2f> rightShoulderInput;
-	vector<vector<Point2f> > inputs;
-
-	std::ifstream infile(path);
-	std::string line;
-	double previous_a = 0;
-	bool left = true;
-
-	while (std::getline(infile, line))
-	{
-		std::istringstream iss(line);
-		double a, b;
-		if (!(iss >> a >> b)) { break; } // error
-
-		//Move to right shoulder input
-		if (abs(a - previous_a) > 50 && previous_a != 0) {
-			left = false;
-		}
-
-		if (left) {
-			leftShoulderInput.push_back(Point2f(a, b));
-		}
-		else {
-			rightShoulderInput.push_back(Point2f(a, b));
-		}
-		previous_a = a;
-	}
-	//Make the input follow this way: --->  <---
-	reverse(leftShoulderInput.begin(), leftShoulderInput.end());
-	reverse(rightShoulderInput.begin(), rightShoulderInput.end());
-
-	inputs.push_back(leftShoulderInput);
-	inputs.push_back(rightShoulderInput);
-
-	return inputs;
-}
 
 int main() {
 	vector<vector<Point2f>> userInput;
@@ -50,42 +11,77 @@ int main() {
 	string pathData = "D:\\605\\Source code\\dataset\\train_";
 	
 	int n;
-	bool image_version;
+	bool image_version = true;
+	bool all = false;
 
 	cout << "0: Image | 1: Video : ";
 	cin >> n;
 	if (n == 0)
 		image_version = true;
-	else
+	if (n == 1)
 		image_version = false;
+	if (n == 2)
+		all = true;
 
-	string fileName;
-	cout << "File name: ";
-	cin.ignore();
-	getline(cin, fileName);
+	
 
-	if (fileName == "")
-		fileName = "02";
-
-	pathUserInput = pathUserInput + fileName + ".txt";
-	userInput = readUserInput(pathUserInput);
-	MYcppGui *myGui = new MYcppGui();
-	myGui->AddUserInput(userInput);
-
-	//for image
-	if (image_version) {
-		pathData = pathData + fileName + ".jpg";
-		frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
-		myGui->ImageProcessing_WithUserInput(frame, true, true);
+	if (all) {
+		for (int i = 2; i < 100; i++) {
+			string n = to_string(i);
+			if (n.size() == 1) {
+				n = "0" + n;
+			}
+			string path = pathData + n + ".jpg";
+			frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
+			if (!frame.data) {
+				continue;
+			}
+			MYcppGui *myGui = new MYcppGui();
+			cout << n << endl;
+			try {
+				myGui->ImageProcessing_WithUserInput(frame, false, true);
+				string t = GetTime();
+				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\" + n + ".jpg", frame);
+				
+			}
+			catch (std::out_of_range& exc) {
+				std::cerr << exc.what();
+				cout << "Error!" << endl;
+				continue;
+			}
+			catch (...){
+				cout << "Error!" << endl;
+				continue;
+			}
+			
+		}
+		cout << "DONE ALL!" << endl;
 	}
-	//for video version
 	else {
-		pathData = pathData + "video_" + fileName + ".avi";
-		myGui->VideoProcessing(pathData);
+		string fileName;
+		cout << "File name: ";
+		cin.ignore();
+		getline(cin, fileName);
+
+		if (fileName == "")
+			fileName = "02";
+
+		pathUserInput = pathUserInput + fileName + ".txt";
+		MYcppGui *myGui = new MYcppGui();
+		myGui->AddUserInput(pathUserInput);
+
+		//for image
+		if (image_version) {
+			pathData = pathData + fileName + ".jpg";
+			frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
+			myGui->ImageProcessing_WithUserInput(frame, true, true);
+		}
+		//for video version
+		else {
+			pathData = pathData + "video_" + fileName + ".avi";
+			myGui->VideoProcessing(pathData);
+		}
+		waitKey(0);
 	}
-
-	//myGui->ShowSampleShoulder();
-
-	waitKey(0);
 	return 0;
 }
