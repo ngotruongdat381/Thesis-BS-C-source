@@ -5,6 +5,32 @@
 //using namespace std;
 //using namespace cv;
 
+bool CheckCommon(std::vector<Point2f> inVectorA, std::vector<Point2f> nVectorB)
+{
+	return std::find_first_of(inVectorA.begin(), inVectorA.end(),
+		nVectorB.begin(), nVectorB.end()) != inVectorA.end();
+}
+
+//vector<string> CheckCommon02(vector<string> &v1, vector<string> &v2)
+//{
+//
+//	vector<string> v3;
+//
+//	sort(v1.begin(), v1.end());
+//	sort(v2.begin(), v2.end());
+//
+//	set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(v3));
+//
+//	return v3;
+//}
+
+//vector<Point2f> CheckCommonPoints(vector<Point2f> line01, vector<Point2f> line02) {
+//	vector<Point2f> v3;
+//	set_intersection(line01.begin(), line01.end(), line02.begin(), line02.end(), back_inserter(v3));
+//
+//	return v3;
+//}
+
 string GetTime() {
 	time_t rawtime;
 	struct tm * timeinfo;
@@ -1601,9 +1627,9 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 	}
 
 	//old way use the longest one
-	
+	cv::vector<Point2f> shoulder_line_for_arm_longest;
 	if (!possible_lines_for_arm.empty()) {
-		cv::vector<Point2f> shoulder_line_for_arm_longest = possible_lines_for_arm.back();
+		shoulder_line_for_arm_longest = possible_lines_for_arm.back();
 
 		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
 		{
@@ -1643,11 +1669,45 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 		{
 			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
 			{
-				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], color, 5, 8, 0);
+				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], yellow, 5, 8, 0);
+			}
+		}
+		
+		//Check if the longest arm line is overlap some points of shoulder lines
+		if (CheckCommon(shoulder_line, shoulder_line_for_arm_longest)) {
+			for (int i = 0; i < shoulder_line_for_arm_longest.size(); i++) {
+				for (int j = 0; j < shoulder_line.size(); j++) {
+					//First common points
+					if (shoulder_line[j] == shoulder_line_for_arm_longest[i]) {
+						if (j + 1 < shoulder_line.size() && i + 1 < shoulder_line_for_arm_longest.size()) {
+							//Check if there is a second point
+							if (shoulder_line[j + 1] == shoulder_line_for_arm_longest[i + 1]) {
+
+								// Remove the first N elements, and shift everything else down by N indices
+								shoulder_line.erase(shoulder_line.begin(), shoulder_line.begin() + j);
+								for (int k = 2; j + k < shoulder_line.size() && i + k < shoulder_line_for_arm_longest.size(); k++) {
+									if (shoulder_line[j + k] != shoulder_line_for_arm_longest[i + k]) {
+										shoulder_line_for_arm_longest.erase(shoulder_line_for_arm_longest.begin() + i + k,
+											shoulder_line_for_arm_longest.end());
+										break;
+									}
+								}
+
+								//Show up
+								for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
+									line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], blue, 5, 8, 0);
+								}
+								goto Exit;
+
+							}
+						}
+					}
+				}
 			}
 		}
 
-		//Add more point for fail detection
+		Exit:
+		//Add more point for fail detections
 		bool is_intersect = false;
 		int j = 2;
 		Point2f upper_shoulder_point02 = Point2f(head_upper_shoulder.x + checking_block*j*cos(radian), 
