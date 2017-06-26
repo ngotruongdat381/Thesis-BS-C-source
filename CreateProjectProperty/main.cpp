@@ -39,9 +39,12 @@ int main() {
 			MYcppGui *myGui = new MYcppGui();
 			cout << n << endl;
 			try {
-				myGui->ImageProcessing_WithUserInput(frame, false, true);
+				vector<Mat> resultMats = myGui->ImageProcessing_WithUserInput(frame, true, true);
 				string t = GetTime();
-				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\" + n + ".jpg", frame);
+				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + ".jpg", frame);
+				for (int j = 0; j < resultMats.size(); j++) {
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + "01.jpg", resultMats[j]);
+				}
 				
 			}
 			catch (std::out_of_range& exc) {

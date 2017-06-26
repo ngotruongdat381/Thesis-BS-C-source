@@ -11,25 +11,17 @@ bool CheckCommon(std::vector<Point2f> inVectorA, std::vector<Point2f> nVectorB)
 		nVectorB.begin(), nVectorB.end()) != inVectorA.end();
 }
 
-//vector<string> CheckCommon02(vector<string> &v1, vector<string> &v2)
-//{
-//
-//	vector<string> v3;
-//
-//	sort(v1.begin(), v1.end());
-//	sort(v2.begin(), v2.end());
-//
-//	set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(v3));
-//
-//	return v3;
-//}
-
-//vector<Point2f> CheckCommonPoints(vector<Point2f> line01, vector<Point2f> line02) {
-//	vector<Point2f> v3;
-//	set_intersection(line01.begin(), line01.end(), line02.begin(), line02.end(), back_inserter(v3));
-//
-//	return v3;
-//}
+Mat Combine2MatSideBySide(Mat &im1, Mat &im2)
+{
+	Size sz1 = im1.size();
+	Size sz2 = im2.size();
+	Mat im3(sz1.height, sz1.width + sz2.width, CV_8UC3);
+	Mat left(im3, Rect(0, 0, sz1.width, sz1.height));
+	im1.copyTo(left);
+	Mat right(im3, Rect(sz1.width, 0, sz2.width, sz2.height));
+	im2.copyTo(right);
+	return im3;
+}
 
 string GetTime() {
 	time_t rawtime;
@@ -464,9 +456,9 @@ void MYcppGui::VideoProcessing(string fileName) {
 }
 
 
-void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine) {
+vector<Mat> MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine) {
 
-
+	vector<Mat> returnMats;
 	Mat src, face_detection_frame; // change name soon
 	src = frame.clone(); // Use for Canny
 	face_detection_frame = frame.clone(); // Use for shoulder detection
@@ -509,7 +501,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 
 	//No face is detected
 	if (shapes_face.size() == 0) {
-		return;
+		return returnMats;
 	}
 
 	//testing
@@ -598,8 +590,8 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 
 	//-----------------------------testing shoulder---------------------------
 	if (isTesting) {
-		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, true, angle_left, blue, false, true);
-		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, false, angle_right, blue, false, true);
+		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, true, angle_left, blue, false, false);
+		detectShoulderLine(face_detection_frame_Blur_NoCheck, detected_edges, false, angle_right, blue, false, false);
 
 		cv::namedWindow("Blur_NoCheck", CV_WINDOW_NORMAL);
 		cv::resizeWindow("Blur_NoCheck", 530, 700);
@@ -610,6 +602,11 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 		cv::resizeWindow("Source_NoBlur_Check", 530, 700);
 		cv::imshow("Source_NoBlur_Check", face_detection_frame);
 		cv::imshow("Canny Only", BiggerCannyWithoutBlurAndMorphology);
+
+		//Combine2MatSideBySide
+		cvtColor(detected_edges, detected_edges, CV_GRAY2RGB);
+		Mat combine = Combine2MatSideBySide(face_detection_frame_Blur_NoCheck, detected_edges);
+		returnMats.push_back(combine);
 	}
 
 	//Return face_detection_frame
@@ -621,6 +618,7 @@ void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool De
 	}
 
 	std::cout << " Time for Postprocess: " << float(clock() - tmp02) / CLOCKS_PER_SEC << endl;
+	return returnMats;
 }
 
 
@@ -1428,6 +1426,9 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 	intersection(head_upper_shoulder, end_upper_shoulder, symmetric_point, end_bottom_shoulder, intersection_point_01);
 
 	
+	//Count points added
+	int COUNT_ALL = 0;
+
 	Point2f intersection_point_with_previous_result;
 
 	//Take points on shoulder_sample follow "checking_block" and build LineIterator from these point to symmetric_point (but stop at bottom shoulder_line
@@ -1488,6 +1489,7 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 			//circle(shoulder_detection_image, intersection_point_with_previous_result, 10, green, -1, 8);
 		}
 
+
 		cv::vector<Point2f> point_line;
 		//LineIterator from  intersection_point which we found above to upper shoulder line 		//Go inside out
 		LineIterator it(shoulder_detection_image, intersection_point, current_point, 8, false);
@@ -1545,14 +1547,11 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 				if (point_line.empty() || EuclideanDistance(current_point, point_line.back()) >= checking_block / 2.5)	//10 work really well - 15 works well too
 				{
 					circle(shoulder_detection_image, Point2f(it.pos().x, it.pos().y), 5, red, -1, 8);
-					
-					if (is_unmatch_color_outside) {
-						circle(shoulder_detection_image, Point2f(it.pos().x, it.pos().y), 7, blue, -1, 8);
-					}
 
 					if (is_close_to_previous_result){
 						//circle(shoulder_detection_image, Point2f(it.pos().x, it.pos().y), 7, blue, -1, 8);
 						point_line.push_back(Point2f(it.pos().x, it.pos().y));
+						COUNT_ALL++;
 					}
 				}
 			}
@@ -1560,6 +1559,28 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 		point_collection.push_back(point_line);
 	}
 
+	
+
+	//Reduce point_collection in the case that shirt texture is too complicated
+	if (COUNT_ALL > 105) {		//fix 83-84
+		cout << COUNT_ALL << " --> ";
+		RefinePoint_collection(shoulder_detection_image, point_collection);
+		//check COUNT_ALL again
+		COUNT_ALL = 0;
+		for (int j = 0; j < point_collection.size(); j++) {
+			COUNT_ALL += point_collection[j].size();
+		}
+
+		if (COUNT_ALL > 75) {
+			RefinePoint_collection(shoulder_detection_image, point_collection);
+			COUNT_ALL = 0;
+			for (int j = 0; j < point_collection.size(); j++) {
+				COUNT_ALL += point_collection[j].size();
+			}
+		}
+	}
+
+	cout << COUNT_ALL << endl;
 	////Draw simplifizedUserInput for testing
 	//for (int i = 0; i < simplifizedUserInput[!leftHandSide].size(); i++) {
 	//	circle(shoulder_detection_image, simplifizedUserInput[!leftHandSide][i], 5, yellow, -1, 8);
@@ -1735,7 +1756,41 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 		return shoulder_line;
 	}
 }
+void MYcppGui::RefinePoint_collection(Mat& frame, cv::vector<cv::vector<Point2f>> &point_collection) {
+	for (int j = 0; j < point_collection.size(); j++) {
+		vector<Point2f> point_line = point_collection[j];
+		for (int i = 0; i < (int)point_line.size() - 1; i++) {
+			if (EuclideanDistance(point_line[i], point_line[i + 1]) > checking_block*1.5) {
+				circle(frame, point_line[i], 5, blue, -1, 8);
+				circle(frame, point_line[i + 1], 5, blue, -1, 8);
 
+				if (i >= 2) {	//Got more than 2 point backward
+					//Remove outside point
+					point_line.erase(point_line.begin() + i + 1, point_line.end());
+
+					//Remove some inside points of point_line
+					int taken_number = max(0, (int)point_line.size() - max(2, (int)point_line.size() / 3));
+					point_line.erase(point_line.begin(), point_line.begin() + taken_number);
+
+					//go out
+					break;
+				}
+			}
+		}
+
+		//If there is no outlier
+		//Remove some inside points of point_line
+		int taken_number = point_line.size() / 2.5;
+		point_line.erase(point_line.begin(), point_line.begin() + taken_number);
+
+		//set back
+		point_collection[j] = point_line;
+
+		for (int i = 0; i < point_collection[j].size(); i++) {
+			circle(frame, point_line[i], 5, green, -1, 8);
+		}
+	}
+}
 Mat MYcppGui::Preprocessing(Mat frame) {
 	Mat CannyWithoutBlurAndMorphology, bilateralBlur;
 	int bilateralIndx = 19;

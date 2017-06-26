@@ -70,7 +70,7 @@ public:
 	int myCppLoadAndShowRGB(string fileName);
 	void MYcppGui::VideoProcessing(string fileName);
 	//void MYcppGui::ImageProcessing(Mat &frame);
-	void MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine);
+	vector<Mat> MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine);
 	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput);
 
 	void MYcppGui::Morphology_Operations(Mat &src);
@@ -103,6 +103,7 @@ public:
 	Mat Preprocessing(Mat frame);
 	void GetSticker(string name, bool changeDirection);
 	Mat MYcppGui::RemoveUnneccessaryImage(Mat& frame);
+	void RefinePoint_collection(Mat& frame, cv::vector<cv::vector<Point2f>> &point_collection);
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;
