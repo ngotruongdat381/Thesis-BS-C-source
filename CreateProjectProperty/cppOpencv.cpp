@@ -433,8 +433,8 @@ void MYcppGui::VideoProcessing(string fileName) {
 	int frame_height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
 	
 	int str_lenght = fileName.size();
-	string noFile = fileName.substr(str_lenght - 6, str_lenght - 5); //dont know why it crop from str_lenght - 6 to the end, so I crop it once again
-	noFile = noFile.substr(0, 2);
+	string noFile = fileName.substr(str_lenght - 7, str_lenght - 5); //dont know why it crop from str_lenght - 6 to the end, so I crop it once again
+	noFile = noFile.substr(0, 3);
 
 	VideoWriter video("output_" + noFile + ".avi", CV_FOURCC('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
 

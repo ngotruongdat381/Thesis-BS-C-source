@@ -28,7 +28,7 @@ int main() {
 	if (all) {
 		for (int i = 2; i < 100; i++) {
 			string n = to_string(i);
-			if (n.size() == 1) {
+			for (int i = n.size(); i < 3; i++) {
 				n = "0" + n;
 			}
 			string path = pathData + n + ".jpg";
@@ -70,7 +70,12 @@ int main() {
 		getline(cin, fileName);
 
 		if (fileName == "")
-			fileName = "02";
+			fileName = "002";
+
+		//Correct form input
+		for (int i = fileName.size(); i < 3; i++) {
+			fileName = "0" + fileName;
+		}
 
 		pathUserInput = pathUserInput + fileName + ".txt";
 		MYcppGui *myGui = new MYcppGui();
