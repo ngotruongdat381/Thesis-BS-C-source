@@ -14,7 +14,7 @@ int main() {
 	bool image_version = true;
 	bool all = false;
 
-	cout << "0: Image | 1: Video : ";
+	cout << "0: Image | 1: Video | 2: All Image : ";
 	cin >> n;
 	if (n == 0)
 		image_version = true;

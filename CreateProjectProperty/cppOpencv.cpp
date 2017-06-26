@@ -21,7 +21,7 @@ double MYcppGui::OverlapPercentage(vector<Point2f> groundTruth, vector<Point2f> 
 			circle(TestMat, groundTruth[i], 0.5, green, -1, 8);
 		}
 	}
-	cout << NUM_OVERLAP_POINT << "/" << groundTruth.size() << " : " << NUM_OVERLAP_POINT/groundTruth.size() << endl;
+	cout << "Percentage: " << NUM_OVERLAP_POINT << "/" << groundTruth.size() << " : " << NUM_OVERLAP_POINT/groundTruth.size() << endl;
 	return NUM_OVERLAP_POINT / groundTruth.size();
 }
 
@@ -965,7 +965,7 @@ std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat fra
 
 	std::cout << " Time for detect face: " << float(clock() - tmp) / CLOCKS_PER_SEC << endl;
 
-	cout << "Number of faces detected: " << cur_dets.size() << endl;
+	cout << "Faces detected: " << cur_dets.size() << endl;
 
 	tmp = clock();
 	// Find the pose of each face.
@@ -1600,7 +1600,7 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 	}
 
 	
-
+	cout << "COUNT_SHOULDER:";
 	//Reduce point_collection in the case that shirt texture is too complicated
 	if (COUNT_ALL > 105) {		//fix 83-84
 		cout << COUNT_ALL << " --> ";
