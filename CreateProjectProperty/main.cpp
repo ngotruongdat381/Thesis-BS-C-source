@@ -37,14 +37,17 @@ int main() {
 				continue;
 			}
 			MYcppGui *myGui = new MYcppGui();
+			myGui->AddUserInput(pathUserInput);
 			cout << n << endl;
 			try {
-				vector<Mat> resultMats = myGui->ImageProcessing_WithUserInput(frame, true, true);
+				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
 				string t = GetTime();
 				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + ".jpg", frame);
 				for (int j = 0; j < resultMats.size(); j++) {
-					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + "01.jpg", resultMats[j]);
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + "(1).jpg", resultMats[j]);
 				}
+
+				//
 				
 			}
 			catch (std::out_of_range& exc) {
@@ -77,7 +80,7 @@ int main() {
 		if (image_version) {
 			pathData = pathData + fileName + ".jpg";
 			frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
-			myGui->ImageProcessing_WithUserInput(frame, true, true);
+			myGui->ImageProcessing_Final(frame, false, true, true);
 		}
 		//for video version
 		else {

@@ -36,6 +36,7 @@ const Scalar red = Scalar(0, 0, 255);
 const Scalar black = Scalar(0, 0, 0);
 const Scalar yellow = Scalar(0, 255, 255);
 const Scalar organe = Scalar(243, 97, 53);
+const Scalar white = Scalar(255, 225, 255);
 
 const int RIGHT_LINE = 1;
 const int LEFT_LINE = 0;
@@ -70,7 +71,7 @@ public:
 	int myCppLoadAndShowRGB(string fileName);
 	void MYcppGui::VideoProcessing(string fileName);
 	//void MYcppGui::ImageProcessing(Mat &frame);
-	vector<Mat> MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine);
+	vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool isTesting, bool DebugLine);
 	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput);
 
 	void MYcppGui::Morphology_Operations(Mat &src);
@@ -104,6 +105,9 @@ public:
 	void GetSticker(string name, bool changeDirection);
 	Mat MYcppGui::RemoveUnneccessaryImage(Mat& frame);
 	void RefinePoint_collection(Mat& frame, cv::vector<cv::vector<Point2f>> &point_collection);
+
+	vector<double> CompareToGroundTruth(vector<vector<Point2f>> line);
+	double MYcppGui::OverlapPercentage(vector<Point2f> groundTruth, vector<Point2f> line);
 private:
 	dlib::shape_predictor shape_predictor;
 	Mat userInputFrame;

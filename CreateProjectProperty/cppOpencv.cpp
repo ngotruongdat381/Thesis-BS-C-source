@@ -5,6 +5,42 @@
 //using namespace std;
 //using namespace cv;
 
+double MYcppGui::OverlapPercentage(vector<Point2f> groundTruth, vector<Point2f> points) {
+	double NUM_OVERLAP_POINT = 0;
+	Mat TestMat = Mat::zeros(userInputFrame.size(), CV_8UC3);
+	TestMat = Scalar::all(0);
+	for (int i = 0; i < points.size() - 1; i++) {
+		line(TestMat, points[i], points[i + 1], white, 20, 8, 0);
+	}
+	for (int i = 0; i < groundTruth.size(); i++) {
+		Vec3b color = TestMat.at<Vec3b>(groundTruth[i]);
+		Scalar cvColor = Scalar(color[0], color[1], color[2]);
+		circle(TestMat, groundTruth[i], 0.5, yellow, -1, 8);
+		if (cvColor == white) {
+			NUM_OVERLAP_POINT++;
+			circle(TestMat, groundTruth[i], 0.5, green, -1, 8);
+		}
+	}
+	cout << NUM_OVERLAP_POINT << "/" << groundTruth.size() << " : " << NUM_OVERLAP_POINT/groundTruth.size() << endl;
+	return NUM_OVERLAP_POINT / groundTruth.size();
+}
+
+vector<double> MYcppGui::CompareToGroundTruth(vector<vector<Point2f>> line) {
+	vector<double> result;
+	for (int k = 0; k < 2; k++) {
+		bool firstPoint, lastPoint;
+		if (line[k][0] == userInput[k][0]) {
+			lastPoint = true;
+		}
+		if (line[k].back() == userInput[k].back()) {
+			firstPoint = true;
+		}
+		double percentage = OverlapPercentage(userInput[k], line[k]);
+		result.push_back(percentage);
+	}
+	return result;
+}
+
 bool CheckCommon(std::vector<Point2f> inVectorA, std::vector<Point2f> nVectorB)
 {
 	return std::find_first_of(inVectorA.begin(), inVectorA.end(),
@@ -332,7 +368,7 @@ vector<vector<Point2f>> MYcppGui::readUserInput(string path)
 
 void MYcppGui::AddUserInput(string path)
 {
-	if (TRACKING_MODE) {
+	//if (TRACKING_MODE) {
 		userInput = readUserInput(path);
 		current_shoulderLine = vector<vector<Point2f>>(userInput);
 		
@@ -340,7 +376,7 @@ void MYcppGui::AddUserInput(string path)
 		simplifizedUserInput = SimplifizeResult(userInput);
 		simplifized_current_shoulderLine = vector<vector<Point2f>>(simplifizedUserInput);
 		userInputFrame = NULL;
-	}
+	//}
 
 }
 
@@ -429,7 +465,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 			bSuccess = capture.read(frame);
 		}
 		face_processed = frame.clone();
-		ImageProcessing_WithUserInput(face_processed, false, true);
+		ImageProcessing_Final(face_processed, false, false, true);
 
 		if (TEST_MODE) {
 			frame = face_processed;
@@ -456,7 +492,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 }
 
 
-vector<Mat> MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, bool DebugLine) {
+vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool isTesting, bool DebugLine) {
 
 	vector<Mat> returnMats;
 	Mat src, face_detection_frame; // change name soon
@@ -585,8 +621,12 @@ vector<Mat> MYcppGui::ImageProcessing_WithUserInput(Mat &frame, bool isTesting, 
 	cv::vector<Point2f> rightShouderLine = detectShoulderLine(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, 
 		false, angle_right, green, true, false); //isTesting
 
+
 	current_shoulderLine = vector<vector<Point2f>> {leftShouderLine, rightShouderLine};
 	simplifized_current_shoulderLine = SimplifizeResult(current_shoulderLine);
+
+	//Compare result to ground truth
+	vector<double> percentages = CompareToGroundTruth(current_shoulderLine);
 
 	//-----------------------------testing shoulder---------------------------
 	if (isTesting) {
@@ -847,7 +887,7 @@ void MYcppGui::AddSticker(Mat &frame) {
 Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput)
 {
 	cv::Mat img_input = cv::imread(fileName, CV_LOAD_IMAGE_COLOR);
-	ImageProcessing_WithUserInput(img_input, true, true);
+	ImageProcessing_Final(img_input, false, true, true);
 	return img_input;
 }
 
