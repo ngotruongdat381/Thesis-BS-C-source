@@ -1779,7 +1779,9 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 		}
 		
 		//Check if the longest arm line is overlap some points of shoulder lines
-		if (CheckCommon(shoulder_line, shoulder_line_for_arm_longest)) {
+		// Construct sub_shoulder_line is equal to first half shoulder ==> make sure the step below is more correct
+		vector<Point2f> sub_shoulder_line(shoulder_line.begin(), shoulder_line.begin() + shoulder_line.size()/2);
+		if (CheckCommon(sub_shoulder_line, shoulder_line_for_arm_longest)) {
 			for (int i = 0; i < shoulder_line_for_arm_longest.size(); i++) {
 				for (int j = 0; j < shoulder_line.size(); j++) {
 					//First common points
@@ -1789,6 +1791,9 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 							if (shoulder_line[j + 1] == shoulder_line_for_arm_longest[i + 1]) {
 
 								// Remove the first N elements, and shift everything else down by N indices
+								for (int k = 0; k < j; k++){
+									line(shoulder_detection_image, shoulder_line[k], shoulder_line[k + 1], black, 5, 8, 0);
+								}
 								shoulder_line.erase(shoulder_line.begin(), shoulder_line.begin() + j);
 								for (int k = 2; j + k < shoulder_line.size() && i + k < shoulder_line_for_arm_longest.size(); k++) {
 									if (shoulder_line[j + k] != shoulder_line_for_arm_longest[i + k]) {
@@ -1800,7 +1805,7 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 
 								//Show up
 								for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
-									line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], blue, 5, 8, 0);
+									line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], green, 5, 8, 0);
 								}
 								goto Exit;
 
@@ -2068,9 +2073,14 @@ cv::vector<Point2f> MYcppGui::findPath(int index, int index_line, cv::vector<cv:
 	for (int i = point_collection[index_line + 1].size() - 1; i >= 0; i--)		//Go inside out to choose the outter result
 																				// I will take all later and pick the closest one to previous result
 	{
+		Point2f current_point = point_collection[index_line][index];
+		Point2f next_point = point_collection[index_line + 1][i];
 		//check angle
-		if (abs(Angle(point_collection[index_line][index], point_collection[index_line + 1][i]) - angle) <= 30) { //used to 25
-			tmp_new_point_line = findPath(i, index_line + 1, point_collection, angle);
+		if (abs(Angle(current_point, next_point) - angle) <= 30) { //used to 25
+			if (EuclideanDistance(current_point, next_point) < checking_block*2) {		//new condition
+				tmp_new_point_line = findPath(i, index_line + 1, point_collection, angle);
+			}
+			
 		}
 		tmp_new_point_line.push_back(point_collection[index_line][index]);
 
