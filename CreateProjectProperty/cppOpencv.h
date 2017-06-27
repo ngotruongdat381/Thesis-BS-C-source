@@ -79,7 +79,7 @@ public:
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat frame);
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame);
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
-	void MYcppGui::CorrectFaceDetection(std::vector<dlib::full_object_detection>& shapes_face);
+	void MYcppGui::CorrectFaceDetection(std::vector<dlib::full_object_detection>& shapes_face, Mat &mask_skin);
 
 	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
 	cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color

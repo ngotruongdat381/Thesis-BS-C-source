@@ -14,19 +14,28 @@ int main() {
 	bool image_version = true;
 	bool all = false;
 
-	cout << "0: Image | 1: Video | 2: All Image : ";
+	cout << "0: Image | 1: Video | 2: All Images | 3: Some Images: ";
 	cin >> n;
 	if (n == 0)
 		image_version = true;
 	if (n == 1)
 		image_version = false;
-	if (n == 2)
+	if (n == 2 || n == 3)
 		all = true;
 
 	
 
 	if (all) {
-		for (int i = 2; i < 100; i++) {
+		int from = 2, to = 200;
+
+		if (n == 3) {
+			cout << "From: ";
+			cin >> from;
+			cout << "To: ";
+			cin >> to;
+		}
+
+		for (int i = from; i <= to; i++) {
 			string n = to_string(i);
 			for (int i = n.size(); i < 3; i++) {
 				n = "0" + n;
@@ -41,10 +50,10 @@ int main() {
 			cout << n << endl;
 			try {
 				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
-				string t = GetTime();
-				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + ".jpg", frame);
+				//string t = GetTime();
+				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + ".jpg", frame);
 				for (int j = 0; j < resultMats.size(); j++) {
-					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\result_" + n + "(1).jpg", resultMats[j]);
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + "(1).jpg", resultMats[j]);
 				}
 
 				//
