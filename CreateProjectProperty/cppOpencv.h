@@ -47,6 +47,10 @@ const int LEFT = -1;
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
 
+static string FILE_NAME;
+static double num_of_processed_image;
+static Vector<double> percentageOverlapDatas;
+
 double EuclideanDistance(Point2f p1, Point2f p2);
 double ColourDistance(Vec3b e1, Vec3b e2);
 double ColourDistance_LAB(Vec3f e1, Vec3f e2);
@@ -90,6 +94,7 @@ public:
 		bool leftHandSide, int angle_neck);
 
 	cv::vector<Point2f> findPath(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
+	map<int, int> MYcppGui::findPath_new(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
 	void AddUserInput(string path);
 	vector<vector<Point2f>> readUserInput(string path);
 

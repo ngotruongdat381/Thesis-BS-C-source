@@ -14,7 +14,7 @@ int main() {
 	bool image_version = true;
 	bool all = false;
 
-	cout << "0: Image | 1: Video | 2: All Images | 3: Some Images: ";
+	cout << "| 0: Image | 1: Video | 2: All Images " << endl << "| 3: Some Images | 4: Read image from file | :";
 	cin >> n;
 	if (n == 0)
 		image_version = true;
@@ -23,7 +23,62 @@ int main() {
 	if (n == 2 || n == 3)
 		all = true;
 
-	
+	if (n == 4) {
+		string file_path = "D:\\605\\Source code\\dataset\\file_";
+		int fileNo;
+		//cout << "File name: ";
+		//cin >> fileNo;
+		fileNo = 1;
+		string name = to_string(fileNo);
+		for (int i = name.size(); i < 2; i++) {
+			name = "0" + name;
+		}
+		file_path = file_path + name + ".txt";
+
+		std::ifstream infile(file_path);
+
+		std::string line;
+		if (infile.good()){
+			while (std::getline(infile, line))
+			{
+				std::istringstream iss(line);
+				int a;
+				if (!(iss >> a )) { break; } // error
+
+				string n = to_string(a);
+				for (int i = n.size(); i < 3; i++) {
+					n = "0" + n;
+				}
+				string path = pathData + n + ".jpg";
+
+				//Cheat
+				FILE_NAME = n;
+
+				frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
+				if (!frame.data) {
+					continue;
+				}
+				string tmpPath;
+				tmpPath = pathUserInput + n + ".txt";
+
+				MYcppGui *myGui = new MYcppGui();
+				myGui->AddUserInput(tmpPath);
+				cout << n << endl;
+				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
+				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\xx\\result_" + n + ".jpg", frame);
+				for (int j = 0; j < resultMats.size(); j++) {
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\xx\\result_" + n + "(1).jpg", resultMats[j]);
+				}
+			}
+		}
+		double total;
+		for (int i = 0; i < percentageOverlapDatas.size(); i++)
+		{
+			total += percentageOverlapDatas[i];
+		}
+		cout << "Average percentage of Overlap: " << total / percentageOverlapDatas.size() << endl;
+		return 0;
+	}
 
 	if (all) {
 		int from = 2, to = 200;
@@ -41,19 +96,26 @@ int main() {
 				n = "0" + n;
 			}
 			string path = pathData + n + ".jpg";
+
+			//Cheat
+			FILE_NAME = n;
+
 			frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
 			if (!frame.data) {
 				continue;
 			}
+			pathUserInput = pathUserInput + n + ".txt";
+
 			MYcppGui *myGui = new MYcppGui();
+
 			myGui->AddUserInput(pathUserInput);
 			cout << n << endl;
 			try {
 				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
 				//string t = GetTime();
-				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + ".jpg", frame);
+				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\2\\result_" + n + ".jpg", frame);
 				for (int j = 0; j < resultMats.size(); j++) {
-					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + "(1).jpg", resultMats[j]);
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\2\\result_" + n + "(1).jpg", resultMats[j]);
 				}
 
 				//
@@ -93,6 +155,9 @@ int main() {
 		//for image
 		if (image_version) {
 			pathData = pathData + fileName + ".jpg";
+
+			//Cheat
+			FILE_NAME = fileName;
 			frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
 			myGui->ImageProcessing_Final(frame, false, true, true);
 		}
