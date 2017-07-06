@@ -47,7 +47,6 @@ const int LEFT = -1;
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
 
-static string FILE_NAME;
 static double num_of_processed_image;
 static Vector<double> percentageOverlapDatas;
 
@@ -62,8 +61,19 @@ bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
 bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
 Point2f mirror(Point2f p, Point2f point0, Point2f point1);
 
+struct PointPostion {
+	int index_line;
+	int index;
+	PointPostion();
+	PointPostion(int index_line_, int index_) {
+		index_line = index_line_;
+		index = index_;
+	}
+};
+
 class MYcppGui {
 public:
+	string FILE_NAME;
 	MYcppGui();
 	~MYcppGui();
 
@@ -88,13 +98,15 @@ public:
 	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
 	cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color
 										, bool checkColor, bool checkPreviousResult);
+	cv::vector<Point2f> Finding_ShoulderLines_From_PointCollection(Mat shoulder_detection_image, cv::vector<cv::vector<Point2f>> point_collection, bool leftHandSide, int angle, Scalar color);
+	void Improve_Fail_Detected_ShoulderLine(Mat shoulder_detection_image, vector<Point2f> &shoulder_line, Point2f head_upper_shoulder, int angle);
 	void AddSticker(Mat &frame);
 
 	cv::vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, Mat mask_skin, std::vector<dlib::full_object_detection> shapes_face,
 		bool leftHandSide, int angle_neck);
 
 	cv::vector<Point2f> findPath(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
-	map<int, int> MYcppGui::findPath_new(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
+	cv::vector<PointPostion> MYcppGui::findPath_new(int index, int index_line, cv::vector<cv::vector<Point2f>> point_collection, double angle);
 	void AddUserInput(string path);
 	vector<vector<Point2f>> readUserInput(string path);
 

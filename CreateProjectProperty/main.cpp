@@ -50,10 +50,6 @@ int main() {
 					n = "0" + n;
 				}
 				string path = pathData + n + ".jpg";
-
-				//Cheat
-				FILE_NAME = n;
-
 				frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
 				if (!frame.data) {
 					continue;
@@ -63,6 +59,10 @@ int main() {
 
 				MYcppGui *myGui = new MYcppGui();
 				myGui->AddUserInput(tmpPath);
+
+				//Cheat
+				myGui->FILE_NAME = n;
+
 				cout << n << endl;
 				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
 				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\xx\\result_" + n + ".jpg", frame);
@@ -97,8 +97,7 @@ int main() {
 			}
 			string path = pathData + n + ".jpg";
 
-			//Cheat
-			FILE_NAME = n;
+			
 
 			frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
 			if (!frame.data) {
@@ -109,6 +108,9 @@ int main() {
 			MYcppGui *myGui = new MYcppGui();
 
 			myGui->AddUserInput(pathUserInput);
+			
+			//Cheat
+			myGui->FILE_NAME = n;
 			cout << n << endl;
 			try {
 				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
@@ -157,7 +159,7 @@ int main() {
 			pathData = pathData + fileName + ".jpg";
 
 			//Cheat
-			FILE_NAME = fileName;
+			myGui->FILE_NAME = fileName;
 			frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
 			myGui->ImageProcessing_Final(frame, false, true, true);
 		}
