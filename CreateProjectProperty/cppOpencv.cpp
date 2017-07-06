@@ -665,7 +665,7 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	}
 	else {
 		collectColorShoulder(face_detection_frame);
-		collectColorShoulder(LightUpFrame);
+		//collectColorShoulder(LightUpFrame);
 	}
 	
 
@@ -1756,7 +1756,7 @@ cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, M
 
 
 	//take potential point for shoulder line by checking angle of these line
-	cv::vector<Point2f> shoulder_line = Finding_ShoulderLines_From_PointCollection(shoulder_detection_image, point_collection, leftHandSide, angle, color);
+	cv::vector<Point2f> shoulder_line = Finding_ShoulderLines_From_PointCollection_v2(shoulder_detection_image, point_collection, leftHandSide, angle, color);
 	return shoulder_line;
 }
 
@@ -1840,8 +1840,6 @@ cv::vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat sho
 		}
 	}
 
-
-
 	if (!possible_lines.empty()) {
 		cv::vector<Point2f> shoulder_line = possible_lines.back();
 
@@ -1886,45 +1884,9 @@ cv::vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat sho
 		}
 
 		//Check if the longest arm line is overlap some points of shoulder lines
-		// Construct sub_shoulder_line is equal to first half shoulder ==> make sure the step below is more correct
-		vector<Point2f> sub_shoulder_line(shoulder_line.begin(), shoulder_line.begin() + shoulder_line.size() / 2);
-		if (CheckCommon(sub_shoulder_line, shoulder_line_for_arm_longest)) {
-			for (int i = 0; i < shoulder_line_for_arm_longest.size(); i++) {
-				for (int j = 0; j < shoulder_line.size(); j++) {
-					//First common points
-					if (shoulder_line[j] == shoulder_line_for_arm_longest[i]) {
-						if (j + 1 < shoulder_line.size() && i + 1 < shoulder_line_for_arm_longest.size()) {
-							//Check if there is a second point
-							if (shoulder_line[j + 1] == shoulder_line_for_arm_longest[i + 1]) {
-
-								// Remove the first N elements, and shift everything else down by N indices
-								for (int k = 0; k < j; k++){
-									line(shoulder_detection_image, shoulder_line[k], shoulder_line[k + 1], black, 5, 8, 0);
-								}
-								shoulder_line.erase(shoulder_line.begin(), shoulder_line.begin() + j);
-								for (int k = 2; j + k < shoulder_line.size() && i + k < shoulder_line_for_arm_longest.size(); k++) {
-									if (shoulder_line[j + k] != shoulder_line_for_arm_longest[i + k]) {
-										shoulder_line_for_arm_longest.erase(shoulder_line_for_arm_longest.begin() + i + k,
-											shoulder_line_for_arm_longest.end());
-										break;
-									}
-								}
-
-								//Show up
-								for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
-									line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], green, 5, 8, 0);
-								}
-								goto Exit;
-
-							}
-						}
-					}
-				}
-			}
-		}
-
-	Exit:
-		//Fine more arm lines
+		Refine_Overlap_ShoulderLine_And_ArmLine(shoulder_detection_image, shoulder_line, shoulder_line_for_arm_longest);
+		
+		//Find more arm lines
 		//for (int i = 0; i < 3; i++) {
 		//	cv::vector<Point2f> path_for_arm = findPath(j, i, point_collection, angle_for_arm);
 		//	shoulder_line
@@ -1938,8 +1900,202 @@ cv::vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat sho
 	}
 }
 
+
+
+cv::vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shoulder_detection_image, cv::vector<cv::vector<Point2f>> point_collection, bool leftHandSide, int angle, Scalar color) {
+
+	double radian = angle * CV_PI / 180.0;
+
+	//upper shoulder sample line
+	Point2f head_upper_shoulder;
+
+	if (leftHandSide) {	//GO LEFT
+		head_upper_shoulder = Point2f(left_cheek.x - 10, left_cheek.y + 10);	// - distance_from_face_to_shouldersample
+	}
+	else {
+		head_upper_shoulder = Point2f(right_cheek.x + 10, right_cheek.y + 10);	// + distance_from_face_to_shouldersample
+	}
+
+	int angle_for_arm = -75;
+	if (leftHandSide)
+		angle_for_arm = -110;
+
+	//check ki trc khi xoa
+	for (int a = 0; a < point_collection.size() - 1; a++) {
+		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
+		{
+			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
+			{
+				//Check difference of angle
+				if (abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle) <= 20 || abs(Angle(point_collection[a][b1], point_collection[a + 1][b2]) - angle_for_arm) <= 20)
+				{
+					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], red, 3, 8, 0);
+
+					//THESIS
+					//line(userInputFrame, point_collection[a][b1], point_collection[a + 1][b2], blue, 2, 8, 0);
+				}
+			}
+		}
+	}
+	//cv::vector<cv::vector<Point2f>> possible_lines;
+	//cv::vector<cv::vector<Point2f>> possible_lines_for_arm;
+
+	cv::vector<cv::vector<PointPostion>> possible_lines_map;
+	cv::vector<cv::vector<PointPostion>> possible_lines_for_arm_map;
+
+
+	for (int i = 0; i < point_collection.size(); i++) {
+		for (int j = 0; j < point_collection[i].size(); j++) {
+			vector<PointPostion> path_map = findPath_new(j, i, point_collection, angle);
+			vector<PointPostion> path_for_arm_map = findPath_new(j, i, point_collection, angle_for_arm);
+
+			if (possible_lines_map.empty() || path_map.size() > possible_lines_map.back().size())
+			{
+				if (!path_map.empty())
+				{
+					possible_lines_map.push_back(path_map);
+				}
+			}
+
+			if (possible_lines_for_arm_map.empty() || path_for_arm_map.size() > possible_lines_for_arm_map.back().size())
+			{
+				if (!path_for_arm_map.empty())
+				{
+					possible_lines_for_arm_map.push_back(path_for_arm_map);
+					//cout << "A new max line" << endl;
+				}
+			}
+		}
+	}
+
+	//old way use the longest one
+	cv::vector<Point2f> shoulder_line_for_arm_longest;
+	cv::vector<PointPostion> shoulder_line_for_arm_longest_map;
+
+	if (!possible_lines_for_arm_map.empty()) {
+		shoulder_line_for_arm_longest_map = possible_lines_for_arm_map.back();
+
+		shoulder_line_for_arm_longest = ConvertFromMap(point_collection, shoulder_line_for_arm_longest_map);
+		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
+		{
+			//line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], black, 5, 8, 0);
+
+			//THESIS
+			//line(userInputFrame, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], green, 5, 8, 0);
+		}
+	}
+
+	if (!possible_lines_map.empty()) {
+		
+		cv::vector<PointPostion> shoulder_line_map = possible_lines_map.back();
+		cv::vector<Point2f> shoulder_line;
+
+		//Convert shoulder_line_map into shoulder_line
+		shoulder_line = ConvertFromMap(point_collection, shoulder_line_map);
+
+		for (int i = 0; i < shoulder_line_map.size() - 1; i++)
+		{
+			//line(shoulder_detection_image, shoulder_line_map[i].getFrom(point_collection), shoulder_line_map[i + 1].getFrom(point_collection), color, 5, 8, 0);
+			line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
+			
+			// THESIS
+			//line(userInputFrame, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
+		}
+
+
+		//new way which is to detect the position of arm line
+		//list use pushback, so the last one is [0]
+		int index_one_third = shoulder_line_map.size() * 1 / 3;
+		int index_half = shoulder_line_map.size() / 2;
+		cv::vector<Point2f> shoulder_line_for_arm_test;
+		cv::vector<PointPostion> shoulder_line_for_arm_test_map;
+
+		for (int i = possible_lines_for_arm_map.size() - 1; i >= 0; i--)
+		{
+			if (abs(shoulder_line[0].x - possible_lines_for_arm_map[i].back().getFrom(point_collection).x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
+			{
+				if (possible_lines_for_arm_map[i].back().getFrom(point_collection).y > shoulder_line[index_half].y) {
+					shoulder_line_for_arm_test_map = possible_lines_for_arm_map[i];
+					break;
+				}
+			}
+		}
+
+		if (!shoulder_line_for_arm_test_map.empty())
+		{
+			shoulder_line_for_arm_test = ConvertFromMap(point_collection, shoulder_line_for_arm_test_map);
+
+			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
+			{
+				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], yellow, 5, 8, 0);
+
+				//THESIS
+				line(userInputFrame, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], green, 5, 8, 0);
+			}
+
+			//THESIS
+			circle(userInputFrame, shoulder_line_for_arm_test[0], 7, green, -1, 8);
+		}
+
+		//Check if the longest arm line is overlap some points of shoulder lines
+		Refine_Overlap_ShoulderLine_And_ArmLine(shoulder_detection_image, shoulder_line, shoulder_line_for_arm_longest);
+
+		//Find more arm lines
+		//for (int i = 0; i < 3; i++) {
+		//	cv::vector<Point2f> path_for_arm = findPath(j, i, point_collection, angle_for_arm);
+		//	shoulder_line
+		//}
+
+		//Add more point for fail detections
+		Improve_Fail_Detected_ShoulderLine(shoulder_detection_image, shoulder_line, head_upper_shoulder, angle);
+		//THESIS
+		circle(userInputFrame, shoulder_line.back(), 7, green, -1, 8);
+		return shoulder_line;
+	}
+}
+//Check if the longest arm line is overlap some points of shoulder lines
+void MYcppGui::Refine_Overlap_ShoulderLine_And_ArmLine(Mat &shoulder_detection_image, vector<Point2f> &shoulder_line, vector<Point2f> &shoulder_line_for_arm_longest) {
+	// Construct sub_shoulder_line is equal to first half shoulder ==> make sure the step below is more correct
+	vector<Point2f> sub_shoulder_line(shoulder_line.begin(), shoulder_line.begin() + shoulder_line.size() / 2);
+	if (CheckCommon(sub_shoulder_line, shoulder_line_for_arm_longest)) {
+		for (int i = 0; i < shoulder_line_for_arm_longest.size(); i++) {
+			for (int j = 0; j < shoulder_line.size(); j++) {
+				//First common points
+				if (shoulder_line[j] == shoulder_line_for_arm_longest[i]) {
+					if (j + 1 < shoulder_line.size() && i + 1 < shoulder_line_for_arm_longest.size()) {
+						//Check if there is a second point
+						if (shoulder_line[j + 1] == shoulder_line_for_arm_longest[i + 1]) {
+
+							// Remove the first N elements, and shift everything else down by N indices
+							for (int k = 0; k < j; k++){
+								line(shoulder_detection_image, shoulder_line[k], shoulder_line[k + 1], black, 5, 8, 0);
+							}
+							shoulder_line.erase(shoulder_line.begin(), shoulder_line.begin() + j);
+							for (int k = 2; j + k < shoulder_line.size() && i + k < shoulder_line_for_arm_longest.size(); k++) {
+								if (shoulder_line[j + k] != shoulder_line_for_arm_longest[i + k]) {
+									shoulder_line_for_arm_longest.erase(shoulder_line_for_arm_longest.begin() + i + k,
+										shoulder_line_for_arm_longest.end());
+									break;
+								}
+							}
+
+							//Show up
+							for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
+								line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], green, 5, 8, 0);
+							}
+							return;
+
+						}
+					}
+				}
+			}
+		}
+	}
+
+}
+
 //Add more point for fail detections
-void MYcppGui::Improve_Fail_Detected_ShoulderLine(Mat shoulder_detection_image, vector<Point2f> &shoulder_line, Point2f head_upper_shoulder, int angle) {
+void MYcppGui::Improve_Fail_Detected_ShoulderLine(Mat &shoulder_detection_image, vector<Point2f> &shoulder_line, Point2f head_upper_shoulder, int angle) {
 	double radian = angle * CV_PI / 180.0;
 
 	bool is_intersect = false;
@@ -2377,4 +2533,12 @@ Mat MYcppGui::GetThumnail(string fileName) {
 	}
 
 	return frame;
+}
+
+vector<Point2f> ConvertFromMap(vector<vector<Point2f>> point_collection, vector<PointPostion> map) {
+	vector<Point2f> line;
+	for (int i = 0; i < map.size(); i++) {
+		line.push_back(map[i].getFrom(point_collection));
+	}
+	return line;
 }

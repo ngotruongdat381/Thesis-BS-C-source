@@ -50,17 +50,6 @@ static int SKIP_FRAMES = 3;
 static double num_of_processed_image;
 static Vector<double> percentageOverlapDatas;
 
-double EuclideanDistance(Point2f p1, Point2f p2);
-double ColourDistance(Vec3b e1, Vec3b e2);
-double ColourDistance_LAB(Vec3f e1, Vec3f e2);
-
-string GetTime();
-double Angle(Point2f start, Point2f end);
-float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2);
-bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
-bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
-Point2f mirror(Point2f p, Point2f point0, Point2f point1);
-
 struct PointPostion {
 	int index_line;
 	int index;
@@ -68,6 +57,12 @@ struct PointPostion {
 	PointPostion(int index_line_, int index_) {
 		index_line = index_line_;
 		index = index_;
+	}
+	Point2f getFrom(vector<vector<Point2f>> point_collection) {
+		if (point_collection.size() > index_line && point_collection[index_line].size() > index) {
+			return point_collection[index_line][index];
+		}
+		return Point();
 	}
 };
 
@@ -99,7 +94,11 @@ public:
 	cv::vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color
 										, bool checkColor, bool checkPreviousResult);
 	cv::vector<Point2f> Finding_ShoulderLines_From_PointCollection(Mat shoulder_detection_image, cv::vector<cv::vector<Point2f>> point_collection, bool leftHandSide, int angle, Scalar color);
-	void Improve_Fail_Detected_ShoulderLine(Mat shoulder_detection_image, vector<Point2f> &shoulder_line, Point2f head_upper_shoulder, int angle);
+	cv::vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shoulder_detection_image, cv::vector<cv::vector<Point2f>> point_collection, bool leftHandSide, int angle, Scalar color);
+	
+	void Improve_Fail_Detected_ShoulderLine(Mat &shoulder_detection_image, vector<Point2f> &shoulder_line, Point2f head_upper_shoulder, int angle);
+	void MYcppGui::Refine_Overlap_ShoulderLine_And_ArmLine(Mat &shoulder_detection_image, vector<Point2f> &shoulder_line, vector<Point2f> &shoulder_line_for_arm_longest);
+
 	void AddSticker(Mat &frame);
 
 	cv::vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, Mat mask_skin, std::vector<dlib::full_object_detection> shapes_face,
@@ -163,3 +162,16 @@ private:
 	bool STICKER_MODE = false;
 	bool TRACKING_MODE = false;
 };
+
+//General function
+double EuclideanDistance(Point2f p1, Point2f p2);
+double ColourDistance(Vec3b e1, Vec3b e2);
+double ColourDistance_LAB(Vec3f e1, Vec3f e2);
+
+string GetTime();
+double Angle(Point2f start, Point2f end);
+float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2);
+bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
+bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
+Point2f mirror(Point2f p, Point2f point0, Point2f point1);
+vector<Point2f> ConvertFromMap(vector<vector<Point2f>> point_collection, vector<PointPostion> map);
