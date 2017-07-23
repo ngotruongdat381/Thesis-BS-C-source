@@ -1,3 +1,4 @@
+#pragma once
 #include "cppOpencv.h"
 #include <sstream>
 #include <string>
@@ -81,7 +82,7 @@ int main() {
 	}
 
 	if (all) {
-		int from = 2, to = 200;
+		int from = 2, to = 400;
 
 		if (n == 3) {
 			cout << "From: ";
@@ -115,9 +116,9 @@ int main() {
 			try {
 				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
 				//string t = GetTime();
-				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\2\\result_" + n + ".jpg", frame);
+				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + ".jpg", frame);
 				for (int j = 0; j < resultMats.size(); j++) {
-					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\2\\result_" + n + "(1).jpg", resultMats[j]);
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + "(1).jpg", resultMats[j]);
 				}
 
 				//
@@ -135,6 +136,29 @@ int main() {
 			
 		}
 		cout << "DONE ALL!" << endl;
+
+		//Calculate Mean and Standard Deviation
+		for (int i = 0; i < 3; i++) {
+			cout << endl << "Resolution " << i << ": " << Resolutions[i].face_detection_cost.size() << endl;
+			Scalar mean, stddev;
+
+			meanStdDev(Resolutions[i].face_detection_cost, mean, stddev);
+			cout << "face_detection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+
+			meanStdDev(Resolutions[i].preprocess_cost, mean, stddev);
+			cout << "preprocess_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+
+			meanStdDev(Resolutions[i].color_collection_cost, mean, stddev);
+			cout << "color_collection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+
+			meanStdDev(Resolutions[i].shoulder_detection_cost, mean, stddev);
+			cout << "shoulder_detection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+
+			meanStdDev(Resolutions[i].total_cost, mean, stddev);
+			cout << "total_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+		}
+		
+
 	}
 	else {
 		string fileName;
@@ -165,6 +189,8 @@ int main() {
 		}
 		//for video version
 		else {
+			//Cheat
+			myGui->FILE_NAME = fileName;
 			pathData = pathData + "video_" + fileName + ".avi";
 			myGui->VideoProcessing(pathData);
 		}
