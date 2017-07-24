@@ -54,7 +54,7 @@ const double RIGHT_ARM_ANGLE = -70;
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
 
-static bool TEST_MODE = true;
+static bool TEST_MODE = false;
 static bool STICKER_MODE = true;
 static bool TRACKING_MODE = false;
 static bool VIDEO_MODE = false;
@@ -186,6 +186,7 @@ public:
 	bool MYcppGui::IsMatchToUserInput(Point2f point);
 	bool IsMatchToColorCollectionInput(Vec3b color);
 	bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon);
+	void MYcppGui::RefineColorCollection(vector<Vec3b> &colorCollection);
 
 	void collectColorShoulderFromInput(Mat &frame);
 	void MYcppGui::collectColor(Mat&frame, Mat &mask_skin, vector<Vec3b> &colorCollection, Point2f head_point, Point2f end_point, double epsilon, bool splitSkinColor);
@@ -199,7 +200,7 @@ public:
 	void RefinePoint_collection(Mat& frame, vector<vector<Point2f>> &point_collection);
 	int RefinePoint_collection_v2(Mat& shoulder_detection_image, Mat &detected_edges, vector<vector<Point2f>> &point_collection, ShoulderModel &shoulderModel);
 	void MYcppGui::RefinePoint_collection_v21(Mat& frame, vector<vector<Point2f>> &point_collection);
-	void MYcppGui::RefinePoint_collection_v22(Mat& frame, vector<vector<Point2f>> &point_collection);
+	void MYcppGui::RefinePoint_collection_v22(Mat& frame, vector<vector<Point2f>> &point_collection, ShoulderModel &shoulderModel);
 	void MYcppGui::RefinePoint_collection_v23(Mat& frame, vector<vector<Point2f>> &point_collection, ShoulderModel &shoulderModel);
 	double Check_Density(Mat& shoulder_detection_image, Mat &detected_edges, Point2f head_bottom_point, int angle, double height);
 
@@ -257,3 +258,6 @@ bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2);
 bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
 Point2f mirror(Point2f p, Point2f point0, Point2f point1);
 vector<Point2f> ConvertFromMap(vector<vector<Point2f>> point_collection, vector<PointPostion> map);
+void getLine(Point2f &p1, Point2f &p2, double &a, double &b, double &c);
+double DistanceFromPointToLine(Point2f &p, Point2f &p2, Point2f &p3);
+bool IsBelongToCollection(Point2f point, vector<Point2f> point_line);
