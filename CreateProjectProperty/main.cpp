@@ -5,6 +5,7 @@
 
 
 int main() {
+	MYcppGui *myGui = new MYcppGui();
 	vector<vector<Point2f>> userInput;
 	Mat frame;
 	Mat src;
@@ -14,15 +15,22 @@ int main() {
 	int n;
 	bool image_version = true;
 	bool all = false;
+	bool saveOnly = false;
 
-	cout << "| 0: Image | 1: Video | 2: All Images " << endl << "| 3: Some Images | 4: Read image from file | :";
+	cout << "| 0: Image | 1: Video | 2: All Images " << endl 
+		<< "| 3: Some Images | 4: Read image from file |" << endl 
+		<< "| 5: All videos | 6: Some videos |:";
 	cin >> n;
 	if (n == 0)
 		image_version = true;
 	if (n == 1)
 		image_version = false;
-	if (n == 2 || n == 3)
+	if (n == 2 || n == 3 || n == 5 || n == 6)
 		all = true;
+	if (n == 5 || n == 6){
+		image_version = false;
+		saveOnly = true;
+	}
 
 	if (n == 4) {
 		string file_path = "D:\\605\\Source code\\dataset\\file_";
@@ -72,57 +80,37 @@ int main() {
 				}
 			}
 		}
-		double total;
-		for (int i = 0; i < percentageOverlapDatas.size(); i++)
-		{
-			total += percentageOverlapDatas[i];
-		}
-		cout << "Average percentage of Overlap: " << total / percentageOverlapDatas.size() << endl;
+		//double total;
+		//for (int i = 0; i < percentageOverlapDatas.size(); i++)
+		//{
+		//	total += percentageOverlapDatas[i];
+		//}
+		//cout << "Average percentage of Overlap: " << total / percentageOverlapDatas.size() << endl;
 		return 0;
 	}
 
 	if (all) {
 		int from = 2, to = 400;
 
-		if (n == 3) {
+		if (n == 3 || n == 6) {
 			cout << "From: ";
 			cin >> from;
 			cout << "To: ";
 			cin >> to;
 		}
-
 		for (int i = from; i <= to; i++) {
-			string n = to_string(i);
-			for (int i = n.size(); i < 3; i++) {
-				n = "0" + n;
-			}
-			string path = pathData + n + ".jpg";
-
-			
-
-			frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
-			if (!frame.data) {
-				continue;
-			}
-			pathUserInput = pathUserInput + n + ".txt";
-
-			MYcppGui *myGui = new MYcppGui();
-
-			myGui->AddUserInput(pathUserInput);
-			
-			//Cheat
-			myGui->FILE_NAME = n;
-			cout << n << endl;
+			string fileName = to_string(i);
+			cout << " --- " << fileName << " --- " << endl;
 			try {
-				vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
-				//string t = GetTime();
-				imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + ".jpg", frame);
-				for (int j = 0; j < resultMats.size(); j++) {
-					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + "(1).jpg", resultMats[j]);
-				}
+				vector<Mat> resultMats = myGui->TotalProcess(fileName, image_version, saveOnly);
+				//if (!frame.data) {
+				//	continue;
+				//}
+				//imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + ".jpg", frame);
 
-				//
-				
+				for (int j = 0; j < resultMats.size() && image_version; j++) {
+					imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + fileName + "(" + to_string(j) + ").jpg", resultMats[j]);
+				}
 			}
 			catch (std::out_of_range& exc) {
 				std::cerr << exc.what();
@@ -133,30 +121,63 @@ int main() {
 				cout << "Error!" << endl;
 				continue;
 			}
-			
 		}
+
+		//for (int i = from; i <= to; i++) {
+		//	string n = to_string(i);
+		//	for (int i = n.size(); i < 3; i++) {
+		//		n = "0" + n;
+		//	}
+		//	string path = pathData + n + ".jpg";
+		//	frame = cv::imread(path, CV_LOAD_IMAGE_COLOR);
+		//	if (!frame.data) {
+		//		continue;
+		//	}
+		//	pathUserInput = pathUserInput + n + ".txt";
+		//	MYcppGui *myGui = new MYcppGui();
+		//	myGui->AddUserInput(pathUserInput);
+		//	
+		//	//Cheat
+		//	myGui->FILE_NAME = n;
+		//	cout << n << endl;
+		//	try {
+		//		vector<Mat> resultMats = myGui->ImageProcessing_Final(frame, false, true, true);
+		//		//string t = GetTime();
+		//		imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + ".jpg", frame);
+		//		for (int j = 0; j < resultMats.size(); j++) {
+		//			imwrite("D:\\605\\Source code\\dataset\\Bulk Result\\1\\result_" + n + "(1).jpg", resultMats[j]);
+		//		}
+		//		
+		//	}
+		//	catch (std::out_of_range& exc) {
+		//		std::cerr << exc.what();
+		//		cout << "Error!" << endl;
+		//		continue;
+		//	}
+		//	catch (...){
+		//		cout << "Error!" << endl;
+		//		continue;
+		//	}
+		//	
+		//}
+
 		cout << "DONE ALL!" << endl;
 
 		//Calculate Mean and Standard Deviation
-		for (int i = 0; i < 3; i++) {
-			cout << endl << "Resolution " << i << ": " << Resolutions[i].face_detection_cost.size() << endl;
-			Scalar mean, stddev;
-
-			meanStdDev(Resolutions[i].face_detection_cost, mean, stddev);
-			cout << "face_detection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
-
-			meanStdDev(Resolutions[i].preprocess_cost, mean, stddev);
-			cout << "preprocess_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
-
-			meanStdDev(Resolutions[i].color_collection_cost, mean, stddev);
-			cout << "color_collection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
-
-			meanStdDev(Resolutions[i].shoulder_detection_cost, mean, stddev);
-			cout << "shoulder_detection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
-
-			meanStdDev(Resolutions[i].total_cost, mean, stddev);
-			cout << "total_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
-		}
+		//for (int i = 0; i < 3 && EXPERIMENT_MODE; i++) {
+		//	cout << endl << "Resolution " << i << ": " << Resolutions[i].face_detection_cost.size() << endl;
+		//	Scalar mean, stddev;
+		//	meanStdDev(Resolutions[i].face_detection_cost, mean, stddev);
+		//	cout << "face_detection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+		//	meanStdDev(Resolutions[i].preprocess_cost, mean, stddev);
+		//	cout << "preprocess_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+		//	meanStdDev(Resolutions[i].color_collection_cost, mean, stddev);
+		//	cout << "color_collection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+		//	meanStdDev(Resolutions[i].shoulder_detection_cost, mean, stddev);
+		//	cout << "shoulder_detection_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+		//	meanStdDev(Resolutions[i].total_cost, mean, stddev);
+		//	cout << "total_cost: " << mean[0] << " +- " << stddev[0] << std::endl;
+		//}
 		
 
 	}
@@ -169,32 +190,31 @@ int main() {
 		if (fileName == "")
 			fileName = "002";
 
-		//Correct form input
-		for (int i = fileName.size(); i < 3; i++) {
-			fileName = "0" + fileName;
-		}
-
-		pathUserInput = pathUserInput + fileName + ".txt";
-		MYcppGui *myGui = new MYcppGui();
-		myGui->AddUserInput(pathUserInput);
-
-		//for image
-		if (image_version) {
-			pathData = pathData + fileName + ".jpg";
-
-			//Cheat
-			myGui->FILE_NAME = fileName;
-			frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
-			myGui->ImageProcessing_Final(frame, false, true, true);
-		}
-		//for video version
-		else {
-			//Cheat
-			myGui->FILE_NAME = fileName;
-			pathData = pathData + "video_" + fileName + ".avi";
-			myGui->VideoProcessing(pathData);
-		}
+		myGui->TotalProcess(fileName, image_version, saveOnly);
+		////Correct form input
+		//for (int i = fileName.size(); i < 3; i++) {
+		//	fileName = "0" + fileName;
+		//}
+		//pathUserInput = pathUserInput + fileName + ".txt";
+		//MYcppGui *myGui = new MYcppGui();
+		//myGui->AddUserInput(pathUserInput);
+		////for image
+		//if (image_version) {
+		//	pathData = pathData + fileName + ".jpg";
+		//	//Cheat
+		//	myGui->FILE_NAME = fileName;
+		//	frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
+		//	myGui->ImageProcessing_Final(frame, false, true, true);
+		//}
+		////for video version
+		//else {
+		//	//Cheat
+		//	myGui->FILE_NAME = fileName;
+		//	pathData = pathData + "video_" + fileName + ".avi";
+		//	myGui->VideoProcessing(pathData, false);
+		//}
 		waitKey(0);
 	}
 	return 0;
 }
+

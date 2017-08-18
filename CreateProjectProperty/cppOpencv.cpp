@@ -9,6 +9,38 @@ vector<Experiment> Resolutions(3);
 int current_px = 0;
 
 
+//Only Image Version return frame
+vector<Mat> MYcppGui::TotalProcess(string fileName, bool image_version, bool saveOnly) {
+	Mat frame;
+	vector<Mat> frames;
+	string pathUserInput = "D:\\605\\Source code\\UserInput\\input_";
+	string pathData = "D:\\605\\Source code\\dataset\\train_";
+	//taehc
+	FILE_NAME = fileName;
+
+	//Correct form input
+	for (int i = fileName.size(); i < 3; i++) {
+		fileName = "0" + fileName;
+	}
+
+	pathUserInput = pathUserInput + fileName + ".txt";
+	AddUserInput(pathUserInput);
+
+	//for image
+	if (image_version) {
+		pathData = pathData + fileName + ".jpg";
+		frame = cv::imread(pathData, CV_LOAD_IMAGE_COLOR);
+		frames = ImageProcessing_Final(frame, false, true, true);
+		return frames;
+	}
+	//for video version
+	else {
+		pathData = pathData + "video_" + fileName + ".avi";
+		VideoProcessing(pathData, saveOnly);
+	}
+	return frames;
+}
+
 Mat equalizedColor(Mat src) {
 
 	vector<Mat> channels;
@@ -195,45 +227,6 @@ Mat GetSkin(Mat const &src) {
 }
 
 
-void overlay_whiteBackground_image() {
-	//Add mustache
-	//Load our overlay image : mustache.png
-	/*Mat imgMustache = imread("D:\\605\\Source code\\dataset\\Sticker\\mustache.jpg", IMREAD_UNCHANGED);
-	double mustacheHeight = shapes_face[0].part(51).y() - shapes_face[0].part(33).y();
-	double mustacWidth = mustacheHeight / imgMustache.size().height * imgMustache.size().width;*/
-
-	//Mat mask1, src1;
-	//resize(imgMustache, mask1, Size(mustacWidth, mustacheHeight));
-
-	//// ROI selection
-	//Rect roi(shapes_face[0].part(33).x() - mustacWidth / 2, shapes_face[0].part(33).y(), mustacWidth, mustacheHeight);
-	//face_detection_frame(roi).copyTo(src1);
-
-	//// to make the white region transparent
-	//Mat mask2, m, m1;
-	//cvtColor(mask1, mask2, CV_BGR2GRAY);
-	//threshold(mask2, mask2, 230, 255, CV_THRESH_BINARY_INV);
-
-	//vector<Mat> maskChannels(3), result_mask(3);
-	//split(mask1, maskChannels);
-	//bitwise_and(maskChannels[0], mask2, result_mask[0]);
-	//bitwise_and(maskChannels[1], mask2, result_mask[1]);
-	//bitwise_and(maskChannels[2], mask2, result_mask[2]);
-	//merge(result_mask, m);         //    imshow("m",m);
-
-	//mask2 = 255 - mask2;
-	//vector<Mat> srcChannels(3);
-	//split(src1, srcChannels);
-	//bitwise_and(srcChannels[0], mask2, result_mask[0]);
-	//bitwise_and(srcChannels[1], mask2, result_mask[1]);
-	//bitwise_and(srcChannels[2], mask2, result_mask[2]);
-	//merge(result_mask, m1);        //    imshow("m1",m1);
-
-	//addWeighted(m, 1, m1, 1, 0, m1);    //    imshow("m2",m1);
-
-	//m1.copyTo(face_detection_frame(roi));
-}
-
 Mat overlrayImage(Mat background, Mat foreground) {
 
 	Mat dst = background.clone();
@@ -274,9 +267,9 @@ void overlayMask(Mat &background, Mat &foreground, Mat& mask) {
 	bitwise_and(srcChannels[0], mask, result_mask[0]);
 	bitwise_and(srcChannels[1], mask, result_mask[1]);
 	bitwise_and(srcChannels[2], mask, result_mask[2]);
-	merge(result_mask, m1);            imshow("m1", m1);
+	merge(result_mask, m1);           // imshow("m1", m1);
 
-	addWeighted(m, 1, m1, 1, 0, m1);        imshow("m2", m1);
+	addWeighted(m, 1, m1, 1, 0, m1);    //    imshow("m2", m1);
 
 	m1.copyTo(background);
 }
@@ -448,7 +441,7 @@ int MYcppGui::myCppLoadAndShowRGB(string fileName)
 	return 0;
 }
 
-void MYcppGui::VideoProcessing(string fileName) {
+void MYcppGui::VideoProcessing(string fileName, bool saveOnly) {
 	VIDEO_MODE = true;
 
 	VideoCapture capture(fileName);
@@ -472,7 +465,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 		w = 530;
 	}
 	cv::namedWindow("Source", CV_WINDOW_NORMAL);
-	cv::resizeWindow("Source", 530, 700);
+	cv::resizeWindow("Source", w, 700);
 
 	//Save the vide0
 	int frame_width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
@@ -514,8 +507,8 @@ void MYcppGui::VideoProcessing(string fileName) {
 		if (!bSuccess) //if not success, break loop
 		{
 			cout << "Cannot read the frame from video file" << endl;
-			capture = VideoCapture(fileName);
-			bSuccess = capture.read(frame);
+			/*capture = VideoCapture(fileName);
+			bSuccess = capture.read(frame);*/
 		}
 
 		face_processed = frame.clone();
@@ -531,7 +524,7 @@ void MYcppGui::VideoProcessing(string fileName) {
 			AddSticker(frame);
 		}
 		
-		cv::imshow("Source", frame);
+		if (!saveOnly) cv::imshow("Source", frame);
 		video.write(frame);
 		
 		nth++;
@@ -600,18 +593,19 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	}
 
 	//testing
-	for (int i = 0; i < 5; i++) {
+	//Get face Line for Masking in AddSticker step
+	vector<Point2f> leftFaceLine;
+	vector<Point2f> rightFaceLine;
+	for (int i = 6; i >= 2; i--) {
 		line(face_detection_frame, Point2f(shapes_face[0].part(i).x(), shapes_face[0].part(i).y()),
 			Point2f(shapes_face[0].part(i + 1).x(), shapes_face[0].part(i + 1).y()), green, 5, 8, 0);
-		line(face_detection_frame, Point2f(shapes_face[0].part(16-i).x(), shapes_face[0].part(16-i).y()),
+		line(face_detection_frame, Point2f(shapes_face[0].part(16 - i).x(), shapes_face[0].part(16 - i).y()),
 			Point2f(shapes_face[0].part(16 - (i + 1)).x(), shapes_face[0].part(16 - (i + 1)).y()), green, 5, 8, 0);
 
-		//thesis
-		//line(userInputFrame, Point2f(shapes_face[0].part(i).x(), shapes_face[0].part(i).y()),
-		//	Point2f(shapes_face[0].part(i + 1).x(), shapes_face[0].part(i + 1).y()), green, 5, 8, 0);
-		//line(userInputFrame, Point2f(shapes_face[0].part(16 - i).x(), shapes_face[0].part(16 - i).y()),
-		//	Point2f(shapes_face[0].part(16 - (i + 1)).x(), shapes_face[0].part(16 - (i + 1)).y()), green, 5, 8, 0);
+		leftFaceLine.push_back(Point2f(shapes_face[0].part(i).x(), shapes_face[0].part(i).y()));
+		rightFaceLine.push_back(Point2f(shapes_face[0].part(16 - i).x(), shapes_face[0].part(16 - i).y()));
 	}
+	current_faceLine = vector<vector<Point2f>> {leftFaceLine, rightFaceLine};
 
 	//-----------------------------skin---------------------------
 	if (EXPERIMENT_MODE) { tmp01 = clock(); }
@@ -660,9 +654,9 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	if (EXPERIMENT_MODE) { tmp01 = clock(); }
 
 	double range_of_shoulder_sample = (right_cheek.x - left_cheek.x);
-	//A -- B
-	//|    | 
-	//D -- C
+	//A ---- B
+	//|	     | 
+	//D ---- C
 	Point2f pA = Point2f(max(left_cheek.x - range_of_shoulder_sample*1.6, 0.0), min(left_cheek.y, right_cheek.y));
 	Point2f pB = Point2f(min(right_cheek.x + range_of_shoulder_sample*1.6, double(frame.cols)), pA.y);
 	Point2f pC = Point2f(pB.x, min(symmetric_point.y, float(frame.rows)));
@@ -745,6 +739,21 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	vector<Point2f> leftNeckLine = DetectNeckLines(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, mask_skin, shapes_face, true, angle_neck_left);
 	vector<Point2f> rightNeckLine = DetectNeckLines(face_detection_frame, BiggerCannyWithoutBlurAndMorphology, mask_skin, shapes_face, false, angle_neck_right);
 	
+	//Improve Neck line
+	leftNeckLine.push_back(Point2f(leftNeckLine.back().x, leftNeckLine.back().y - checking_block / 2));
+	leftNeckLine.insert(leftNeckLine.begin(), Point2f(leftNeckLine[0].x, leftNeckLine[0].y + checking_block / 2));
+
+	rightNeckLine.push_back(Point2f(rightNeckLine.back().x, rightNeckLine.back().y - checking_block / 2));
+	rightNeckLine.insert(rightNeckLine.begin(), Point2f(rightNeckLine[0].x, rightNeckLine[0].y + checking_block / 2));
+
+
+	current_neckLine = vector<vector<Point2f>> {leftNeckLine, rightNeckLine};
+	
+	/*Mat maskNeck, maskFace, maskAll;
+	maskNeck = BuildNeckMask(current_neckLine[0], current_neckLine[1]);
+	maskFace = BuildNeckMask(current_faceLine[0], current_faceLine[1]);
+	bitwise_or(maskNeck, maskFace, maskAll);*/
+
 	//-----------------------------shoulders------------------	---------
 	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
 
@@ -804,6 +813,7 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	cvtColor(BiggerCannyWithoutBlurAndMorphology, BiggerCannyWithoutBlurAndMorphology, CV_GRAY2RGB);
 	Mat combine = Combine2MatSideBySide(frame, BiggerCannyWithoutBlurAndMorphology);
 	frame = combine.clone();
+	returnMats.push_back(frame);
 	std::cout << " Time for Postprocess: " << float(clock() - tmp02) / CLOCKS_PER_SEC << endl << endl;
 	return returnMats;
 }
@@ -889,10 +899,10 @@ void MYcppGui::AddSticker(Mat &frame) {
 			x_ROI_sticker_begin += distanceMoving;
 			need_to_crop_sticker = true;
 			if (stickerDirection == LEFT) {
-				stickerPosition = Point2f(right_neck, current_shoulderLine[RIGHT_LINE].back().y);
+				stickerPosition = Point2f(right_neck, current_shoulderLine[RIGHT_LINE].back().y - checking_block/1);	//+ checking_block/2 for go high abit
 			}
 			if (stickerDirection == RIGHT) {
-				stickerPosition = Point2f(left_neck - (stickerWidth - x_ROI_sticker_begin), current_shoulderLine[LEFT_LINE].back().y);
+				stickerPosition = Point2f(left_neck - (stickerWidth - x_ROI_sticker_begin), current_shoulderLine[LEFT_LINE].back().y - checking_block / 1);
 			}
 		}
 
@@ -901,12 +911,11 @@ void MYcppGui::AddSticker(Mat &frame) {
 			x_ROI_sticker_begin += distanceMoving; 
 			need_to_crop_sticker = true;
 			if (stickerDirection == LEFT) {
-				stickerPosition = Point2f(left_neck - x_ROI_sticker_begin, current_shoulderLine[LEFT_LINE].back().y);
+				stickerPosition = Point2f(left_neck - x_ROI_sticker_begin, current_shoulderLine[LEFT_LINE].back().y - checking_block / 1);
 			}
 			if (stickerDirection == RIGHT) {
-				stickerPosition = Point2f(right_neck, current_shoulderLine[RIGHT_LINE].back().y);
+				stickerPosition = Point2f(right_neck, current_shoulderLine[RIGHT_LINE].back().y - checking_block / 1);
 			}
-			//relativePostion_sticker -= distanceMoving;	//Move
 		}
 
 
@@ -1004,11 +1013,11 @@ void MYcppGui::AddSticker(Mat &frame) {
 			return;
 		}
 
-
 		//Add sticker
 		Mat cropedBG;
 		Rect roi(stickerPosition.x, stickerPosition.y - stickerHeight / 2, stickerWidth, stickerHeight);	
-		frame(roi).copyTo(cropedBG);
+		//frame(roi).copyTo(cropedBG);
+		originalFrame(roi).copyTo(cropedBG);
 		Mat cloneCropedBG = cropedBG.clone();
 		Mat dst = overlrayImage(cropedBG, sticker);
 		dst.copyTo(frame(roi));
@@ -1016,34 +1025,30 @@ void MYcppGui::AddSticker(Mat &frame) {
 		//Try to add Mask overlay
 		if (stickerStatus == Appearing || stickerStatus == Disappearing) {
 			//Mat LightUpCrop = ChangeBrightness(cloneCropedBG);
-			Mat skin = GetSkin(originalFrame);
-			Mat croppedSkin;
-			skin(roi).copyTo(croppedSkin);
+			//Mat skin = GetSkin(originalFrame);
+			//Mat croppedSkin;
+			//skin(roi).copyTo(croppedSkin);
 
-			Mat mask1, mask2;
-			mask1 = croppedSkin.clone();
-			cvtColor(mask1, mask2, CV_BGR2GRAY);
-			threshold(mask2, mask2, 0, 255, THRESH_BINARY);
-
-			overlayMask(dst, cloneCropedBG, mask2);
-			dst.copyTo(frame(roi));
-
-			///*Mat cropedBG02;
-			//Rect roi(left_cheek.x, left_cheek.y, right_cheek.x - left_cheek.x, chin.y + 2*checking_block - left_cheek.y);
-			//frame(roi).copyTo(cropedBG02);*/
-			//Mat LightUpCrop = ChangeBrightness(cloneCropedBG);
-			//Mat skin = GetSkin(LightUpCrop);
-
-			//Mat mask1, mask2;
-			//mask1 = skin.clone();
+			Mat maskNeck, maskFace, maskAll, mask2;
+			//mask1 = croppedSkin.clone();
 			//cvtColor(mask1, mask2, CV_BGR2GRAY);
 			//threshold(mask2, mask2, 0, 255, THRESH_BINARY);
 
-			//overlayMask(dst, cloneCropedBG, mask2);
-			//dst.copyTo(frame(roi));
+			maskNeck = BuildNeckMask(current_neckLine[0], current_neckLine[1]);
+			maskFace = BuildNeckMask(current_faceLine[0], current_faceLine[1]);
+			bitwise_or(maskNeck, maskFace, maskAll); 
 
+			maskAll(roi).copyTo(mask2);
 
+			overlayMask(dst, cloneCropedBG, mask2);
+			dst.copyTo(frame(roi));
 		}
+		for (int k = 0; k <= 1; k++) {
+			for (int i = 0; i < current_neckLine[k].size() - 1; i++) {
+				line(frame, current_neckLine[k][i], current_neckLine[k][i+1], green, 3, 8, 0);
+			}
+		}
+
 }
 
 Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput)
@@ -1173,64 +1178,6 @@ std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat fra
 	return new_shapes;
 }
 
-std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat frame)
-{
-	// We need a face detector.  We will use this to get bounding boxes for
-	// each face in an image.
-	dlib::frontal_face_detector detector = dlib::get_frontal_face_detector();
-
-	Mat src;
-
-	//cv::resize(frame, src, cv::Size(), 0.75, 0.75);
-	src = frame;
-
-	//dlib::array2d<dlib::rgb_pixel> cimg;
-	//assign_image(cimg, dlib::cv_image<dlib::bgr_pixel>(src));
-	dlib::cv_image<dlib::bgr_pixel> cimg(src);
-	//pyramid_up(cimg);
-
-	// Now tell the face detector to give us a list of bounding boxes
-	// around all the faces in the image.
-	//cout << cimg.size() << endl;
-	clock_t tmp = clock();
-	std::vector<dlib::rectangle> dets = detector(cimg);
-	std::cout << " Time for detect face: " << float(clock() - tmp) / CLOCKS_PER_SEC << endl;
-
-	cout << "Number of faces detected: " << dets.size() << endl;
-
-	// Now we will go ask the shape_predictor to tell us the pose of
-	// each face we detected.
-	std::vector<dlib::full_object_detection> new_shapes;
-	for (unsigned long j = 0; j < dets.size(); ++j)
-	{
-		dlib::full_object_detection shape = shape_predictor(cimg, dets[j]);
-		//cout << "number of parts: " << shape.num_parts() << endl;
-		//for (int i = 0; i < shape.num_parts(); i++) {
-			//cout << "<part name='" << i << "' x='" << shape.part(i).x() << "' y='" << shape.part(i).y() << "'/>" << endl;
-		//}
-		// You get the idea, you can get all the face part locations if
-		// you want them.  Here we just store them in shapes so we can
-		// put them on the screen.
-
-		new_shapes.push_back(shape);
-	}
-	
-	//shapes.assign(shapess.begin(), shapess.end());
-	// Now let's view our face poses on the screen.
-	//win.clear_overlay();
-	//win.set_image(cimg);
-	//win.add_overlay(render_face_detections(*shapes));
-
-	// We can also extract copies of each face that are cropped, rotated upright,
-	// and scaled to a standard size as shown here:
-	//dlib::array<array2d<rgb_pixel> > face_chips;
-	//extract_image_chips(cimg, get_face_chip_details(*shapes), face_chips);
-	//win_faces.set_image(tile_images(face_chips));
-
-
-	//std::getchar();
-	return new_shapes;
-}
 void MYcppGui::CorrectFaceDetection(std::vector<dlib::full_object_detection>& shapes_face, Mat &mask_skin) {
 	//Cheating
 	if (FILE_NAME != "002" && FILE_NAME != "023" && FILE_NAME != "047") {
@@ -1560,7 +1507,19 @@ Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f e
 	return colorNeckCollection;
 }
 
+Mat MYcppGui::BuildNeckMask(vector<Point2f>&leftNeckLine, vector<Point2f>&rightNeckLine) {
+	Mat mask = Mat::zeros(originalFrame.size(), CV_8UC1);
+	vector<Point> NeckLine(leftNeckLine.begin(), leftNeckLine.end());
+	NeckLine.insert(NeckLine.end(), rightNeckLine.rbegin(), rightNeckLine.rend());
 
+	vector <vector<Point> > contourElement;
+	contourElement.push_back(NeckLine);
+	vector<Point> tmp = contourElement.at(0);
+	const Point* elementPoints[1] = { &tmp[0] };
+	int numberOfPoints = (int)tmp.size();
+	fillPoly(mask, elementPoints, &numberOfPoints, 1, Scalar(255), 8);
+	return mask;
+}
 
 vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, Mat mask_skin, std::vector<dlib::full_object_detection> shapes_face, bool leftHandSide, int angle_neck) {
 	
@@ -1647,7 +1606,7 @@ vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat dete
 				//Check difference of angle
 				if (AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_neck) <= 15)
 				{
-					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], yellow, 3, 8, 0);
+					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], yellow, 2, 8, 0);
 				}
 			}
 		}
@@ -1674,7 +1633,7 @@ vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat dete
 
 		for (int i = 0; i < neck_line.size() - 1; i++)
 		{
-			line(shoulder_detection_image, neck_line[i], neck_line[i + 1], green, 5, 8, 0);
+			line(shoulder_detection_image, neck_line[i], neck_line[i + 1], green, 3, 8, 0);
 		}	
 	}
 	return neck_line;

@@ -54,7 +54,7 @@ const double RIGHT_ARM_ANGLE = -70;
 static int FACE_DOWNSAMPLE_RATIO = 3;
 static int SKIP_FRAMES = 3;
 
-static bool TEST_MODE = false;
+static bool TEST_MODE = true;
 static bool STICKER_MODE = true;
 static bool TRACKING_MODE = false;
 static bool VIDEO_MODE = false;
@@ -145,16 +145,17 @@ public:
 	//void collectColorShoulder_LAB();
 	//bool IsMatchToColorCollectionInput_LAB(Vec3f color_LAB);
 
+	vector<Mat> MYcppGui::TotalProcess(string fileName, bool image_version, bool saveOnly);
+
 	Mat GetThumnail(string fileName);
 	int myCppLoadAndShowRGB(string fileName);
-	void MYcppGui::VideoProcessing(string fileName);
+	void MYcppGui::VideoProcessing(string fileName, bool saveOnly);
 	//void MYcppGui::ImageProcessing(Mat &frame);
 	vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool isTesting, bool DebugLine);
 	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput);
 
 	void MYcppGui::Morphology_Operations(Mat &src);
 	void MYcppGui::CannyProcessing(Mat image, OutputArray edges);
-	std::vector<dlib::full_object_detection> MYcppGui::face_detection_dlib_image(Mat frame);
 	std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame);
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
 	void MYcppGui::CorrectFaceDetection(std::vector<dlib::full_object_detection>& shapes_face, Mat &mask_skin);
@@ -174,6 +175,8 @@ public:
 
 	vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, Mat mask_skin, std::vector<dlib::full_object_detection> shapes_face,
 		bool leftHandSide, int angle_neck);
+	Mat BuildNeckMask(vector<Point2f> &leftNeckLine, vector<Point2f> &rightNeckLine);
+
 
 	vector<Point2f> findPath(int index_line, int index, vector<vector<Point2f>> &point_collection, double angle, double epsilon, int type);
 
@@ -216,6 +219,10 @@ private:
 	vector<vector<Point2f>> current_shoulderLine;
 	vector<vector<Point2f>> simplifized_current_shoulderLine;
 
+	vector<vector<Point2f>> current_neckLine;
+	vector<vector<Point2f>> simplifized_current_neckLine;
+
+	vector<vector<Point2f>> current_faceLine;
 	vector<Vec3b> colorCollection_Shoulder;
 	vector<Vec3b> colorCollection_Skin;
 	//vector<Vec3f> colorCollection_LAB;
