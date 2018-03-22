@@ -22,7 +22,6 @@
 
 using namespace std;
 using namespace cv;
-//using namespace dlib;
 
 const clock_t begin_time = clock();
 static clock_t current_time = clock();
@@ -141,16 +140,10 @@ public:
 	MYcppGui();
 	~MYcppGui();
 
-	//Not good
-	//void collectColorShoulder_LAB();
-	//bool IsMatchToColorCollectionInput_LAB(Vec3f color_LAB);
-
 	vector<Mat> MYcppGui::TotalProcess(string fileName, bool image_version, bool saveOnly);
-
 	Mat GetThumnail(string fileName);
 	int myCppLoadAndShowRGB(string fileName);
 	void MYcppGui::VideoProcessing(string fileName, bool saveOnly);
-	//void MYcppGui::ImageProcessing(Mat &frame);
 	vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool isTesting, bool DebugLine);
 	Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput);
 
@@ -160,7 +153,6 @@ public:
 	void MYcppGui::detectNecessaryPointsOfFace(std::vector<dlib::full_object_detection> shapes_face);
 	void MYcppGui::CorrectFaceDetection(std::vector<dlib::full_object_detection>& shapes_face, Mat &mask_skin);
 
-	//void MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, Point head_shoulder, Point end_shoulder, int angle, int distance);
 	vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat detected_edges, bool leftHandSide, int angle, Scalar color
 										, bool checkColor, bool checkPreviousResult);
 	vector<vector<Point2f>> Collect_Potential_ShoulderPoint(Mat shoulder_detection_image, Mat &detected_edges, ShoulderModel &shoulderModel, bool checkColor, bool checkPreviousResult, Scalar color);
@@ -176,7 +168,6 @@ public:
 	vector<Point2f> DetectNeckLines(Mat shoulder_detection_image, Mat detected_edges, Mat mask_skin, std::vector<dlib::full_object_detection> shapes_face,
 		bool leftHandSide, int angle_neck);
 	Mat BuildNeckMask(vector<Point2f> &leftNeckLine, vector<Point2f> &rightNeckLine);
-
 
 	vector<Point2f> findPath(int index_line, int index, vector<vector<Point2f>> &point_collection, double angle, double epsilon, int type);
 

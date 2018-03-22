@@ -2,9 +2,6 @@
 
 #include "cppOpencv.h"
 
-//using namespace std;
-//using namespace cv;
-
 vector<Experiment> Resolutions(3);
 int current_px = 0;
 
@@ -15,7 +12,6 @@ vector<Mat> MYcppGui::TotalProcess(string fileName, bool image_version, bool sav
 	vector<Mat> frames;
 	string pathUserInput = "D:\\605\\Source code\\UserInput\\input_";
 	string pathData = "D:\\605\\Source code\\dataset\\train_";
-	//taehc
 	FILE_NAME = fileName;
 
 	//Correct form input
@@ -97,26 +93,27 @@ vector<double> MYcppGui::CompareToGroundTruth(vector<vector<Point2f>> line) {
 	vector<double> result;
 	for (int k = 0; k < userInput.size() && userInput[k].size() != 0; k++) {
 		bool firstPoint, lastPoint;
+
 		if (line[k][0] == userInput[k][0]) {
 			lastPoint = true;
 		}
+
 		if (line[k].back() == userInput[k].back()) {
 			firstPoint = true;
 		}
+
 		double percentage = OverlapPercentage(userInput[k], line[k]);
 		result.push_back(percentage);
 	}
 	return result;
 }
 
-bool CheckCommon(std::vector<Point2f> inVectorA, std::vector<Point2f> nVectorB)
-{
+bool CheckCommon(std::vector<Point2f> inVectorA, std::vector<Point2f> nVectorB) {
 	return std::find_first_of(inVectorA.begin(), inVectorA.end(),
 		nVectorB.begin(), nVectorB.end()) != inVectorA.end();
 }
 
-Mat Combine2MatSideBySide(Mat &im1, Mat &im2)
-{
+Mat Combine2MatSideBySide(Mat &im1, Mat &im2) {
 	Size sz1 = im1.size();
 	Size sz2 = im2.size();
 	Mat im3(sz1.height, sz1.width + sz2.width, CV_8UC3);
@@ -141,8 +138,8 @@ string GetTime() {
 }
 
 Mat ChangeBrightness(Mat image, int beta = 50) {
-	double alpha = 1.0; /*< Simple contrast control */
-	//int beta = 50;       /*< Simple brightness control */
+	double alpha = 1.0;		//Simple contrast control
+	//int beta = 50;        //Simple brightness control
 	Mat new_image = Mat::zeros(image.size(), image.type());
 
 	for (int y = 0; y < image.rows; y++) {
@@ -276,8 +273,7 @@ void overlayMask(Mat &background, Mat &foreground, Mat& mask) {
 
 // Given three colinear points p, q, r, the function checks if
 // point q lies on line segment 'pr'
-bool onSegment(Point2f p, Point2f q, Point2f r)
-{
+bool onSegment(Point2f p, Point2f q, Point2f r) {
 	if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) &&
 		q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y))
 		return true;
@@ -290,12 +286,8 @@ bool onSegment(Point2f p, Point2f q, Point2f r)
 // 0 --> p, q and r are colinear
 // 1 --> Clockwise
 // 2 --> Counterclockwise
-int orientation(Point2f p, Point2f q, Point2f r)
-{
-	// See http://www.geeksforgeeks.org/orientation-3-ordered-points/
-	// for details of below formula.
-	int val = (q.y - p.y) * (r.x - q.x) -
-		(q.x - p.x) * (r.y - q.y);
+int orientation(Point2f p, Point2f q, Point2f r) {
+	int val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 
 	if (val == 0) return 0;  // colinear
 
@@ -304,8 +296,7 @@ int orientation(Point2f p, Point2f q, Point2f r)
 
 // The main function that returns true if line segment 'p1q1'
 // and 'p2q2' intersect.
-bool doIntersect(Point2f p1, Point2f q1, Point2f p2, Point2f q2)
-{
+bool doIntersect(Point2f p1, Point2f q1, Point2f p2, Point2f q2) {
 	// Find the four orientations needed for general and
 	// special cases
 	int o1 = orientation(p1, q1, p2);
@@ -333,14 +324,12 @@ bool doIntersect(Point2f p1, Point2f q1, Point2f p2, Point2f q2)
 	return false; // Doesn't fall in any of the above cases
 }
 
-MYcppGui::MYcppGui()
-{
+MYcppGui::MYcppGui() {
 	checking_block = 0;
 	dlib::deserialize("D:\\shape_predictor_68_face_landmarks.dat") >> shape_predictor;
 }
 
-MYcppGui::~MYcppGui()
-{
+MYcppGui::~MYcppGui() {
 	cvDestroyAllWindows();
 }
 
@@ -356,8 +345,7 @@ vector<vector<Point2f>> SimplifizeResult(vector<vector<Point2f>> result) {
 	return Simplifized;
 }
 
-vector<vector<Point2f>> MYcppGui::readUserInput(string path)
-{
+vector<vector<Point2f>> MYcppGui::readUserInput(string path) {
 	vector<cv::Point2f> leftShoulderInput;
 	vector<cv::Point2f> rightShoulderInput;
 	vector<vector<Point2f> > inputs;
@@ -397,9 +385,7 @@ vector<vector<Point2f>> MYcppGui::readUserInput(string path)
 	return inputs;
 }
 
-void MYcppGui::AddUserInput(string path)
-{
-	//if (TRACKING_MODE) {
+void MYcppGui::AddUserInput(string path) {
 		userInput = readUserInput(path);
 		current_shoulderLine = vector<vector<Point2f>>(userInput);
 		
@@ -407,7 +393,7 @@ void MYcppGui::AddUserInput(string path)
 		simplifizedUserInput = SimplifizeResult(userInput);
 		simplifized_current_shoulderLine = vector<vector<Point2f>>(simplifizedUserInput);
 		userInputFrame = NULL;
-	//}
+	
 
 }
 
@@ -429,10 +415,8 @@ void MYcppGui::GetSticker(string name, bool changeDirection) {
 	}
 }
 
-int MYcppGui::myCppLoadAndShowRGB(string fileName)
-{
+int MYcppGui::myCppLoadAndShowRGB(string fileName) {
 	cout << fileName << endl;
-	// my OpenCV C++ codes uses only cxcore, highgui and imgproc 
 	fileName = "D:\\train_02.jpg";
 	cv::Mat img_input = cv::imread(fileName, CV_LOAD_IMAGE_COLOR);
 	cv::namedWindow("Source", CV_WINDOW_NORMAL);
@@ -445,8 +429,8 @@ void MYcppGui::VideoProcessing(string fileName, bool saveOnly) {
 	VIDEO_MODE = true;
 
 	VideoCapture capture(fileName);
-	if (!capture.isOpened())  // if not success, exit program
-	{
+	if (!capture.isOpened()) {  // if not success, exit program
+	
 		cout << "Cannot open the video file" << endl;
 		return;
 	}
@@ -485,9 +469,7 @@ void MYcppGui::VideoProcessing(string fileName, bool saveOnly) {
 		collectColorShoulderFromInput(userInputFrame);
 	}
 	
-	while (1)
-	{
-
+	while (1) {
 		cout << nth << " th frame" << endl;
 		Mat frame, face_processed;
 		bool bSuccess = capture.read(frame); // read a new frame from video
@@ -498,11 +480,6 @@ void MYcppGui::VideoProcessing(string fileName, bool saveOnly) {
 			nth++;
 			continue;
 		}
-
-		//if (nth != 1 && nth < 328) {
-		//	nth++;
-		//	continue;
-		//}
 
 		if (!bSuccess) //if not success, break loop
 		{
@@ -563,8 +540,7 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	originalFrame = frame.clone();
 	face_detection_frame = frame.clone(); // Use for shoulder detection
 
-	if (userInputFrame.empty())
-	{
+	if (userInputFrame.empty()) {
 		userInputFrame = frame.clone();
 	}
 
@@ -645,8 +621,7 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	//circle(userInputFrame, symmetric_point, 7, green, -1, 8);
 
 	double left_eye_width = shapes_face[0].part(39).x() - shapes_face[0].part(36).x();
-	if (checking_block == 0 || abs(left_eye_width * 1 / 3 - checking_block) >= 50)
-	{
+	if (checking_block == 0 || abs(left_eye_width * 1 / 3 - checking_block) >= 50) {
 		checking_block = left_eye_width * 1.3 / 2;
 	}
 
@@ -661,9 +636,6 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	Point2f pB = Point2f(min(right_cheek.x + range_of_shoulder_sample*1.6, double(frame.cols)), pA.y);
 	Point2f pC = Point2f(pB.x, min(symmetric_point.y, float(frame.rows)));
 	Point2f pD = Point2f(pA.x, pC.y);
-
-	//delete unneccessary part ==>improve later
-	//Mat deleted_frame = RemoveUnneccessaryImage(src);
 
 	Mat sub_frame = src(cv::Rect(pA.x, pA.y, pB.x - pA.x, pD.y - pA.y));
 	Mat CannyWithoutBlurAndMorphology = Preprocessing(sub_frame);
@@ -683,7 +655,6 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	//-----------------------------collect Color Shoulder---------------------------
 	//Thesis
 	//withUserInput = true;
-
 
 	if (withUserInput) {
 		if (nth == 1) {
@@ -746,13 +717,7 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	rightNeckLine.push_back(Point2f(rightNeckLine.back().x, rightNeckLine.back().y - checking_block / 2));
 	rightNeckLine.insert(rightNeckLine.begin(), Point2f(rightNeckLine[0].x, rightNeckLine[0].y + checking_block / 2));
 
-
 	current_neckLine = vector<vector<Point2f>> {leftNeckLine, rightNeckLine};
-	
-	/*Mat maskNeck, maskFace, maskAll;
-	maskNeck = BuildNeckMask(current_neckLine[0], current_neckLine[1]);
-	maskFace = BuildNeckMask(current_faceLine[0], current_faceLine[1]);
-	bitwise_or(maskNeck, maskFace, maskAll);*/
 
 	//-----------------------------shoulders------------------	---------
 	Mat face_detection_frame_Blur_NoCheck = face_detection_frame.clone();
@@ -810,6 +775,7 @@ vector<Mat> MYcppGui::ImageProcessing_Final(Mat &frame, bool withUserInput, bool
 	else {
 		frame = src.clone();
 	}
+
 	cvtColor(BiggerCannyWithoutBlurAndMorphology, BiggerCannyWithoutBlurAndMorphology, CV_GRAY2RGB);
 	Mat combine = Combine2MatSideBySide(frame, BiggerCannyWithoutBlurAndMorphology);
 	frame = combine.clone();
@@ -862,19 +828,14 @@ void MYcppGui::AddSticker(Mat &frame) {
 		// Disappearing
 		if (left_neck - stickerWidth < actualPostion_sticker && actualPostion_sticker < right_neck) {
 			if (stickerStatus == Walking && Disappeared == false) {
-				//in_cropping_process = true;
 				stickerStatus = Disappearing;
-				//relativePostion_sticker = actualPostion_sticker - nose.x;
 			}
 		}
 
 		// Appearing
 		if (x_ROI_sticker_begin >= (stickerWidth - distanceMoving) && stickerStatus == Disappearing) {
-			//in_cropping_process = true;
 			stickerStatus = Appearing;
 			x_ROI_sticker_begin = 0;	//use as stickerWidth when Appearing
-			//relativePostion_sticker = left_neck - nose.x - distanceMoving;		//Initial the first start when Appearing: distanceMoving
-			//actualPostion_sticker = relativePostion_sticker + nose.x;		//refactor later
 			Disappeared = true;
 		}
 
@@ -956,16 +917,6 @@ void MYcppGui::AddSticker(Mat &frame) {
 				}
 			}
 		}
-		
-		//The cases that sticker go out of the iamge
-		//if (stickerPosition.x + stickerWidth / 2 > frame.size().width) {
-		//	stickerWidth = frame.size().width - stickerPosition.x + stickerWidth / 2;
-		//	need_to_crop_sticker = true;
-		//}
-		//if (stickerPosition.y - stickerHeight / 2 > frame.size().height) {
-		//	stickerHeight = frame.size().height - stickerPosition.x + stickerHeight / 2;
-		//	need_to_crop_sticker = true;
-		//}
 
 		//Crop the sticker
 		if (need_to_crop_sticker) {
@@ -975,10 +926,6 @@ void MYcppGui::AddSticker(Mat &frame) {
 			if (stickerStatus == Disappearing) {
 				stickerWidth -= x_ROI_sticker_begin;	//Used for croping BG later
 				cv::Rect stickerROI(x_ROI_sticker_begin * ratio, 0, sticker.size().width - x_ROI_sticker_begin * ratio, sticker.size().height);
-
-				// Crop the full image to that image contained by the rectangle myROI
-				// Note that this doesn't copy the data
-				//sticker = sticker(stickerROI);
 
 				cv::Mat croppedSticker = sticker(stickerROI);
 				sticker = croppedSticker.clone();
@@ -1002,10 +949,11 @@ void MYcppGui::AddSticker(Mat &frame) {
 		}
 
 		// Turn back when it hits the border || out of shoulder lines
-		if (((stickerPosition.x <= 0 || stickerPosition.x + stickerWidth / 2 <= current_shoulderLine[LEFT_LINE][0].x) && stickerDirection == LEFT)
-			||
-			((stickerPosition.x + stickerWidth >= frame.size().width || stickerPosition.x + stickerWidth / 2 >= current_shoulderLine[RIGHT_LINE][0].x) && stickerDirection == RIGHT))
-		{
+		if (((stickerPosition.x <= 0 || stickerPosition.x + stickerWidth / 2 <= current_shoulderLine[LEFT_LINE][0].x) 
+			&& stickerDirection == LEFT)
+			|| ((stickerPosition.x + stickerWidth >= frame.size().width 
+				|| stickerPosition.x + stickerWidth / 2 >= current_shoulderLine[RIGHT_LINE][0].x) 
+				&& stickerDirection == RIGHT)) {
 			stickerDirection = -1 * stickerDirection; // change direction
 			actualPostion_sticker = stickerPosition.x + stickerDirection * 5;		// 1 is in case
 			relativePostion_sticker = actualPostion_sticker - nose.x;
@@ -1024,16 +972,7 @@ void MYcppGui::AddSticker(Mat &frame) {
 
 		//Try to add Mask overlay
 		if (stickerStatus == Appearing || stickerStatus == Disappearing) {
-			//Mat LightUpCrop = ChangeBrightness(cloneCropedBG);
-			//Mat skin = GetSkin(originalFrame);
-			//Mat croppedSkin;
-			//skin(roi).copyTo(croppedSkin);
-
 			Mat maskNeck, maskFace, maskAll, mask2;
-			//mask1 = croppedSkin.clone();
-			//cvtColor(mask1, mask2, CV_BGR2GRAY);
-			//threshold(mask2, mask2, 0, 255, THRESH_BINARY);
-
 			maskNeck = BuildNeckMask(current_neckLine[0], current_neckLine[1]);
 			maskFace = BuildNeckMask(current_faceLine[0], current_faceLine[1]);
 			bitwise_or(maskNeck, maskFace, maskAll); 
@@ -1051,16 +990,14 @@ void MYcppGui::AddSticker(Mat &frame) {
 
 }
 
-Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput)
-{
+Mat MYcppGui::ImageProcessing(string fileName, vector<cv::Point2f> userInput) {
 	cv::Mat img_input = cv::imread(fileName, CV_LOAD_IMAGE_COLOR);
 	ImageProcessing_Final(img_input, false, true, true);
 	return img_input;
 }
 
 
-void MYcppGui::Morphology_Operations(Mat &src)
-{
+void MYcppGui::Morphology_Operations(Mat &src) {
 	int morph_elem = 0;
 
 	//kernel for morphology blur
@@ -1074,8 +1011,7 @@ void MYcppGui::Morphology_Operations(Mat &src)
 	morphologyEx(src, src, MORPH_CLOSE, element);	//close
 }
 
-void MYcppGui::CannyProcessing(Mat image, OutputArray edges)
-{
+void MYcppGui::CannyProcessing(Mat image, OutputArray edges) {
 	//Min threshold for Canny 16
 	int CannyThreshold = 20;
 	
@@ -1097,15 +1033,9 @@ void MYcppGui::CannyProcessing(Mat image, OutputArray edges)
 	
 	/// Canny detector
 	Canny(edges, edges, CannyThreshold, CannyThreshold*ratio, kernel_size);
-
-
-	/// Using Canny's output as a mask, we display our result
-	//dst = Scalar::all(0);
-	//image.copyTo(dst, edges); // check soon
 }
 
-std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame)
-{
+std::vector<dlib::full_object_detection> MYcppGui::face_detection_update(Mat frame) {
 	Mat src;
 	src = frame;
 
@@ -1338,50 +1268,41 @@ void MYcppGui::collectColor(Mat&frame, Mat &mask_skin, vector<Vec3b> &colorColle
 	//LineIterator 
 	LineIterator it(frame, head_point, end_point, 8, false);
 
-	for (int i = 0; i < it.count; i += 1, ++it)
-	{
+	for (int i = 0; i < it.count; i += 1, ++it) {
 		if (i % 10 != 0) {	//move 10px
 			continue;
 		}
 		int x = it.pos().x;
 		int y = it.pos().y;
 
-		//Vec3b color = frame.at<Vec3b>(Point2f(x, y));
 		Vec3b color = AverageColor(frame, x, y);
 
 		int check_skin = mask_skin.at<uchar>(Point2f(x, y));
 
 
 		if (splitSkinColor && check_skin == 255) {
-			if (colorCollection_Skin.size() == 0)
-			{
+			if (colorCollection_Skin.size() == 0) {
 				colorCollection_Skin.push_back(color);
 				continue;
 			}
 
 			double minColourDistance = ColourDistance(color, colorCollection_Skin[0]);
-			//cout << minColourDistance << endl;
 
-			for (int j = 1; j < colorCollection_Skin.size(); j++)
-			{
+			for (int j = 1; j < colorCollection_Skin.size(); j++) {
 				double colourDistance = ColourDistance(color, colorCollection_Skin[j]);
-				//cout << colourDistance << endl;
 				if (colourDistance < minColourDistance)
 					minColourDistance = colourDistance;
 			}
 
 			circle(frame, Point2f(x, y), 1, green, -1, 8);		//1
 
-			if (minColourDistance > epsilon)
-			{
+			if (minColourDistance > epsilon) {
 				colorCollection_Skin.push_back(color);
 				circle(frame, Point2f(x, y), 3, blue, -1, 8);	//3
 			}
-			//cout << "-----------------" << endl;
 		}
 		else {
-			if (colorCollection.size() == 0)
-			{
+			if (colorCollection.size() == 0) {
 				colorCollection.push_back(color);
 				continue;
 			}
@@ -1389,8 +1310,7 @@ void MYcppGui::collectColor(Mat&frame, Mat &mask_skin, vector<Vec3b> &colorColle
 			double minColourDistance = ColourDistance(color, colorCollection[0]);
 			//cout << minColourDistance << endl;
 
-			for (int j = 1; j < colorCollection.size(); j++)
-			{
+			for (int j = 1; j < colorCollection.size(); j++) {
 				double colourDistance = ColourDistance(color, colorCollection[j]);
 				//cout << colourDistance << endl;
 				if (colourDistance < minColourDistance)
@@ -1399,12 +1319,10 @@ void MYcppGui::collectColor(Mat&frame, Mat &mask_skin, vector<Vec3b> &colorColle
 
 			circle(frame, Point2f(x, y), 1, green, -1, 8);		//1
 
-			if (minColourDistance > epsilon)
-			{
+			if (minColourDistance > epsilon) {
 				colorCollection.push_back(color);
 				circle(frame, Point2f(x, y), 3, blue, -1, 8);	//3
 			}
-			//cout << "-----------------" << endl;
 		}
 	}
 }
@@ -1477,8 +1395,7 @@ Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f e
 		//Vec3b color = frame.at<Vec3b>(Point2f(x, y));
 		Vec3b color = AverageColor(frame, x, y);
 
-		if (i == 0)
-		{
+		if (i == 0) {
 			colorNeckCollection.push_back(color);
 			continue;
 		}
@@ -1486,8 +1403,7 @@ Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f e
 		double minColourDistance = ColourDistance(color, colorNeckCollection[0]);
 		cout << minColourDistance << endl;
 
-		for (int j = 1; j < colorNeckCollection.size(); j++)
-		{
+		for (int j = 1; j < colorNeckCollection.size(); j++) {
 			double colourDistance = ColourDistance(color, colorNeckCollection[j]);
 			cout << colourDistance << endl;
 			if (colourDistance < minColourDistance)
@@ -1496,8 +1412,7 @@ Vector<Vec3b> MYcppGui::collectColorNeck(Mat&frame, Point2f head_neck, Point2f e
 
 		circle(frame, Point2f(x, y), 5, green, -1, 8);
 
-		if (minColourDistance > 20)
-		{
+		if (minColourDistance > 20) {
 			colorNeckCollection.push_back(color);
 			circle(frame, Point2f(x, y), 5, blue, -1, 8);
 		}
@@ -1529,7 +1444,7 @@ vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat dete
 	Point2f end_neck02;
 	Vector<Vec3b> colors;
 
-	if (leftHandSide){
+	if (leftHandSide) {
 		head_neck = Point2f(left_cheek.x, shapes_face[0].part(4).y());
 		head_neck02 = Point2f(shapes_face[0].part(6).x() + 5, head_neck.y);		//10 is just in case
 		end_neck = Point2f(head_neck.x, chin.y + checking_block);
@@ -1599,13 +1514,10 @@ vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat dete
 
 	//Just for testing and debug
 	for (int a = 0; a < point_collection.size() - 1; a++) {
-		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
-		{
-			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
-			{
+		for (int b1 = 0; b1 < point_collection[a].size(); b1++) {
+			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++) {
 				//Check difference of angle
-				if (AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_neck) <= 15)
-				{
+				if (AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_neck) <= 15) {
 					line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], yellow, 2, 8, 0);
 				}
 			}
@@ -1618,10 +1530,8 @@ vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat dete
 		for (int j = 0; j < point_collection[i].size(); j++) {
 			vector<Point2f> path = findPath(i, j, point_collection, angle_neck, 25, 2);
 
-			if (possible_lines.empty() || path.size() > possible_lines.back().size())
-			{
-				if (!path.empty())
-				{
+			if (possible_lines.empty() || path.size() > possible_lines.back().size()) {
+				if (!path.empty()) {
 					possible_lines.push_back(path);
 				}
 			}
@@ -1631,8 +1541,7 @@ vector<Point2f> MYcppGui::DetectNeckLines(Mat shoulder_detection_image, Mat dete
 	if (!possible_lines.empty()) {
 		neck_line = possible_lines.back();
 
-		for (int i = 0; i < neck_line.size() - 1; i++)
-		{
+		for (int i = 0; i < neck_line.size() - 1; i++) {
 			line(shoulder_detection_image, neck_line[i], neck_line[i + 1], green, 3, 8, 0);
 		}	
 	}
@@ -1668,48 +1577,9 @@ vector<vector<Point2f>> MYcppGui::Collect_Potential_ShoulderPoint(Mat shoulder_d
 		}
 
 		//Got error when run train_23. So i let it stop when touch end_second_bottom_shoulder
-		if (intersection_point.y > shoulderModel.end_second_bottom_shoulder.y){
+		if (intersection_point.y > shoulderModel.end_second_bottom_shoulder.y) {
 			break;
 		}
-
-		//if (checkPreviousResult) {
-
-		//	//Find intersection between "it" and Simplifized User Input
-		//	//THe case we re between 2 shoulder lines
-		//	if (j == 0) {
-		//		bool check_intersected = doIntersect(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide].back(),
-		//			simplifized_current_shoulderLine[!leftHandSide][simplifized_current_shoulderLine[!leftHandSide].size() - 2]);
-		//		if (!check_intersected) {
-		//			Point2f intersection_point02;
-		//			intersection(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide].back(),
-		//				simplifized_current_shoulderLine[!leftHandSide][simplifized_current_shoulderLine[!leftHandSide].size() - 2],
-		//				intersection_point02);
-		//			simplifized_current_shoulderLine[!leftHandSide].push_back(intersection_point02);
-		//		}
-		//	}
-
-		//	//If the no suitable result, intersection_point_with_previous_result will be the nearest point to neck
-		//	intersection_point_with_previous_result = simplifized_current_shoulderLine[!leftHandSide].back();
-		//	bool is_intersect = false;
-		//	//left hand simplifized_current_shoulderLine is 0 which == !leftHandSide and otherwises
-		//	for (int i = 0; i < simplifized_current_shoulderLine[!leftHandSide].size() - 1; i++) {
-		//		if (doIntersect(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide][i], simplifized_current_shoulderLine[!leftHandSide][i + 1]))
-		//		{
-		//			intersection(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide][i], simplifized_current_shoulderLine[!leftHandSide][i + 1]
-		//				, intersection_point_with_previous_result);
-		//			is_intersect = true;
-		//			break;
-		//		}
-		//	}
-
-		//	//THe case we re out of the shoulder line
-		//	if (!is_intersect) {
-		//		intersection(intersection_point, current_point, simplifized_current_shoulderLine[!leftHandSide][0], simplifized_current_shoulderLine[!leftHandSide][1]
-		//			, intersection_point_with_previous_result);
-		//	}
-		//	//circle(shoulder_detection_image, intersection_point_with_previous_result, 10, green, -1, 8);
-		//}
-
 
 		vector<Point2f> point_line;
 
@@ -1720,8 +1590,7 @@ vector<vector<Point2f>> MYcppGui::Collect_Potential_ShoulderPoint(Mat shoulder_d
 		LineIterator it(shoulder_detection_image, intersection_point, current_point, 8, false);
 
 		//Get all intersections of LineIterator and Canny lines;
-		for (int i = 0; i < it.count; i += 2, ++it, ++it)
-		{
+		for (int i = 0; i < it.count; i += 2, ++it, ++it) {
 			// Skip the point out of the frame
 			if (it.pos().x < 0 || it.pos().x > shoulder_detection_image.size().width - 1 || it.pos().y > shoulder_detection_image.size().height - 1) {
 				continue;
@@ -1734,24 +1603,7 @@ vector<vector<Point2f>> MYcppGui::Collect_Potential_ShoulderPoint(Mat shoulder_d
 			if (it.pos().y + 15 > shoulder_detection_image.size().height - 1)
 				break;
 
-			//Color check //update later
-			//Vec3b color = shoulder_detection_image.at<Vec3b>(Point2f(it.pos().x, it.pos().y + 25));
-			/*Vec3b color = LAB_frame.at<Vec3b>(Point2f(it.pos().x, it.pos().y + 25));
-			Vec3f color_LAB = Vec3f((float)color[0] / 255 * 100, (float)color[1] - 128, (float)color[2] - 128);*/
-
-			// go inside body ==> - sign*20
-			//Vec3b color_inside = AverageColor(shoulder_detection_image, it.pos().x - sign*20, it.pos().y + 20);		//used to be 25 -- 10 is good
 			Vec3b color_inside = AverageColor(originalFrame, it.pos().x, it.pos().y + 18);
-			// go outside body ==> + sign*20
-			//Vec3b color_outside = AverageColor(shoulder_detection_image, it.pos().x + sign * 20, it.pos().y - 20);	
-			//Vec3b color_outside02 = AverageColor(shoulder_detection_image, it.pos().x, it.pos().y - 20);
-
-			//bool is_unmatch_color_outside01 = !IsMatchColor(color_outside, colorCollection_Shoulder, 30);
-			//bool is_unmatch_color_outside02 = !IsMatchColor(color_outside, colorCollection_Shoulder, 30);
-			//bool is_unmatch_color_outside = is_unmatch_color_outside01 || is_unmatch_color_outside02;
-
-			//bool is_match_color = IsMatchColor(color_inside, colorCollection_Shoulder, 30);	//belong to inside
-			//&& !IsMatchColor(color_outside, colorCollection_Shoulder, 30);				// not belong to outside
 
 			bool is_match_color_shoulder = IsMatchColor(color_inside, colorCollection_Shoulder, 30);
 			bool is_match_color = is_match_color_shoulder;
@@ -1781,10 +1633,9 @@ vector<vector<Point2f>> MYcppGui::Collect_Potential_ShoulderPoint(Mat shoulder_d
 			//Thesis
 			//is_match_color = true;
 
-			if (value_in_edge_map == 255 && is_match_color)
-			{
-				if (point_line.empty() || EuclideanDistance(current_point, point_line.back()) >= checking_block / 2.5)	//10 work really well - 15 works well too
-				{
+			if (value_in_edge_map == 255 && is_match_color) {
+				if (point_line.empty() || EuclideanDistance(current_point, point_line.back()) >= checking_block / 2.5) {	//10 work really well - 15 works well too
+				
 					circle(shoulder_detection_image, Point2f(it.pos().x, it.pos().y), 2, color, -1, 8);
 
 					//Thesis
@@ -1856,7 +1707,7 @@ vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat d
 	if (COUNT_ALL > 250) {
 		RefinePoint_collection_v23(shoulder_detection_image, point_collection, shoulderModel);
 	}
-	else if (COUNT_ALL > 95) {		//fix 83-84 //fix 209
+	else if (COUNT_ALL > 95) {		
 		cout << COUNT_ALL << " --> ";
 
 		//RefinePoint_collection(shoulder_detection_image, point_collection);
@@ -1871,14 +1722,6 @@ vector<Point2f> MYcppGui::detectShoulderLine(Mat shoulder_detection_image, Mat d
 		for (int j = 0; j < point_collection.size(); j++) {
 			COUNT_ALL += point_collection[j].size();
 		}
-
-		//if (COUNT_ALL > 75) {
-		//	//RefinePoint_collection(shoulder_detection_image, point_collection);
-		//	COUNT_ALL = 0;
-		//	for (int j = 0; j < point_collection.size(); j++) {
-		//		COUNT_ALL += point_collection[j].size();
-		//	}
-		//}
 	}
 
 
@@ -1934,14 +1777,11 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 	
 	//Show possible point
 	for (int a = 0; a < point_collection.size() - 1; a++) {
-		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
-		{
-			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
-			{
+		for (int b1 = 0; b1 < point_collection[a].size(); b1++) {
+			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++) {
 				//Check difference of angle
 				if (AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), shoulderModel.angle) <= epsilon_angle_shoulder
-					|| AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_for_arm) <= 30)
-				{
+					|| AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_for_arm) <= 30) {
 					if (EuclideanDistance(point_collection[a][b1], point_collection[a + 1][b2]) < checking_block * 1.5) {
 						line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], red, 3, 8, 0);
 
@@ -1961,18 +1801,14 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 			vector<Point2f> path = findPath(i, j, point_collection, shoulderModel.angle, epsilon_angle_shoulder, 0);
 			vector<Point2f> path_for_arm = findPath(i, j, point_collection, angle_for_arm, 30, 1);
 
-			if (possible_lines.empty() || path.size() > possible_lines.back().size())
-			{
-				if (!path.empty())
-				{
+			if (possible_lines.empty() || path.size() > possible_lines.back().size()) {
+				if (!path.empty()) {
 					possible_lines.push_back(path);
 				}
 			}
 
-			if (possible_lines_for_arm.empty() || path_for_arm.size() > possible_lines_for_arm.back().size())
-			{
-				if (!path_for_arm.empty())
-				{
+			if (possible_lines_for_arm.empty() || path_for_arm.size() > possible_lines_for_arm.back().size()) {
+				if (!path_for_arm.empty()) {
 					possible_lines_for_arm.push_back(path_for_arm);
 					//cout << "A new max line" << endl;
 				}
@@ -1985,8 +1821,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 	if (!possible_lines_for_arm.empty()) {
 		shoulder_line_for_arm_longest = possible_lines_for_arm.back();
 
-		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
 			line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], black, 5, 8, 0);
 
 			//THESIS
@@ -1997,8 +1832,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 	if (!possible_lines.empty()) {
 		vector<Point2f> shoulder_line = possible_lines.back();
 
-		for (int i = 0; i < shoulder_line.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line.size() - 1; i++) {
 			line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
 
 			// THESIS
@@ -2012,10 +1846,8 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 		int index_half = shoulder_line.size() / 2;
 		vector<Point2f> shoulder_line_for_arm_test;
 
-		for (int i = possible_lines_for_arm.size() - 1; i >= 0; i--)
-		{
-			if (abs(shoulder_line[0].x - possible_lines_for_arm[i].back().x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
-			{
+		for (int i = possible_lines_for_arm.size() - 1; i >= 0; i--) {
+			if (abs(shoulder_line[0].x - possible_lines_for_arm[i].back().x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x)) {
 				if (possible_lines_for_arm[i].back().y > shoulder_line[index_half].y) {
 					shoulder_line_for_arm_test = possible_lines_for_arm[i];
 					break;
@@ -2023,10 +1855,8 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 			}
 		}
 
-		if (!shoulder_line_for_arm_test.empty())
-		{
-			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
-			{
+		if (!shoulder_line_for_arm_test.empty()) {
+			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++) {
 				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], yellow, 5, 8, 0);
 
 				//THESIS
@@ -2039,12 +1869,6 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection(Mat shoulde
 
 		//Check if the longest arm line is overlap some points of shoulder lines
 		Refine_Overlap_ShoulderLine_And_ArmLine(shoulder_detection_image, shoulder_line, shoulder_line_for_arm_longest);
-		
-		//Find more arm lines
-		//for (int i = 0; i < 3; i++) {
-		//	vector<Point2f> path_for_arm = findPath(i, j, point_collection, angle_for_arm);
-		//	shoulder_line
-		//}
 
 		//Add more point for fail detections
 		Improve_Fail_Detected_ShoulderLine(shoulder_detection_image, shoulder_line, shoulderModel.head_upper_shoulder, shoulderModel.angle);
@@ -2062,14 +1886,11 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shou
 
 	//Show possible point
 	for (int a = 0; a < point_collection.size() - 1; a++) {
-		for (int b1 = 0; b1 < point_collection[a].size(); b1++)
-		{
-			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++)
-			{
+		for (int b1 = 0; b1 < point_collection[a].size(); b1++) {
+			for (int b2 = 0; b2 < point_collection[a + 1].size(); b2++) {
 				//Check difference of angle
 				if (AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), shoulderModel.angle) <= epsilon_angle_shoulder
-					|| AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_for_arm) <= 30)
-				{
+					|| AngleDifference(Angle(point_collection[a][b1], point_collection[a + 1][b2]), angle_for_arm) <= 30) {
 					if (EuclideanDistance(point_collection[a][b1], point_collection[a + 1][b2]) < checking_block * 1.5) {
 						line(shoulder_detection_image, point_collection[a][b1], point_collection[a + 1][b2], red, 3, 8, 0);
 
@@ -2098,20 +1919,15 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shou
 				path_for_arm_map = findPath_v2(i, j, point_collection, angle_for_arm, 30, 1, shoulderModel);
 			}
 			
-			if (possible_lines_map.empty() || path_map.size() > possible_lines_map.back().size())
-			{
-				if (!path_map.empty())
-				{
+			if (possible_lines_map.empty() || path_map.size() > possible_lines_map.back().size()) {
+				if (!path_map.empty()) {
 					possible_lines_map.push_back(path_map);
 				}
 			}
 
-			if (possible_lines_for_arm_map.empty() || path_for_arm_map.size() > possible_lines_for_arm_map.back().size())
-			{
-				if (!path_for_arm_map.empty())
-				{
+			if (possible_lines_for_arm_map.empty() || path_for_arm_map.size() > possible_lines_for_arm_map.back().size()) {
+				if (!path_for_arm_map.empty()) {
 					possible_lines_for_arm_map.push_back(path_for_arm_map);
-					//cout << "A new max line" << endl;
 				}
 			}
 		}
@@ -2121,14 +1937,11 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shou
 	vector<Point2f> shoulder_line_for_arm_longest;
 	vector<PointPostion> shoulder_line_for_arm_longest_map;
 	if (!possible_lines_for_arm_map.empty()) {
-
-
 		shoulder_line_for_arm_longest_map = possible_lines_for_arm_map.back();
 
 		shoulder_line_for_arm_longest = ConvertFromMap(point_collection, shoulder_line_for_arm_longest_map);
 
-		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
 			line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], black, 5, 8, 0);
 
 			//THESIS
@@ -2143,8 +1956,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shou
 		shoulder_line_map = possible_lines_map.back();
 		shoulder_line = ConvertFromMap(point_collection, shoulder_line_map);
 
-		for (int i = 0; i < shoulder_line.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line.size() - 1; i++) {
 			line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
 
 			// THESIS
@@ -2158,19 +1970,8 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shou
 		int index_half = shoulder_line.size() / 2;
 		vector<Point2f> shoulder_line_for_arm_test;
 		vector<PointPostion> shoulder_line_for_arm_test_map;
-		//for (int i = possible_lines_for_arm_map.size() - 1; i >= 0; i--)
-		//{
-		//	if (abs(shoulder_line[0].x - possible_lines_for_arm[i].back().x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
-		//	{
-		//		if (possible_lines_for_arm[i].back().y > shoulder_line[index_half].y) {
-		//			shoulder_line_for_arm_test = possible_lines_for_arm[i];
-		//			break;
-		//		}
-		//	}
-		//}
 
-		for (int i = possible_lines_for_arm_map.size() - 1; i >= 0; i--)
-		{
+		for (int i = possible_lines_for_arm_map.size() - 1; i >= 0; i--) {
 			if (abs(shoulder_line[0].x - possible_lines_for_arm_map[i].back().getFrom(point_collection).x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
 			{
 				if (possible_lines_for_arm_map[i].back().getFrom(point_collection).y > shoulder_line[index_half].y) {
@@ -2182,8 +1983,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v2(Mat shou
 
 		shoulder_line_for_arm_test = ConvertFromMap(point_collection, shoulder_line_for_arm_test_map);
 
-		if (!shoulder_line_for_arm_test.empty())
-		{
+		if (!shoulder_line_for_arm_test.empty()) {
 			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
 			{
 				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], yellow, 5, 8, 0);
@@ -2415,12 +2215,6 @@ void MYcppGui::RefinePoint_collection_v23(Mat& frame, vector<vector<Point2f>> &p
 
 	vector<vector<Point2f>> new_point_collection = Collect_Potential_ShoulderPoint(frame, Bigger_detected_edges, shoulderModel, false, false, green);
 	
-	//No blur canny support for Blur one	//Not give good result
-	//for (int i = 0; i < new_point_collection.size(); i++) {
-	//	if (new_point_collection[i].size() <= 1) {
-	//		new_point_collection[i] = point_collection[i];
-	//	}
-	//}
 	point_collection = new_point_collection;
 }
 
@@ -2534,8 +2328,6 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 			}
 		}
 	}
-	//vector<vector<Point2f>> possible_lines;
-	//vector<vector<Point2f>> possible_lines_for_arm;
 
 	vector<vector<PointPostion>> possible_lines_map;
 	vector<vector<PointPostion>> possible_lines_for_arm_map;
@@ -2584,13 +2376,6 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 		}
 	}
 
-	//Sort possible_lines_map
-	//std::sort(possible_lines_map.begin(), possible_lines_map.end(),
-	//	[](const std::vector<PointPostion>& a, const std::vector<PointPostion>& b) {
-	//	return a.size() < b.size();
-	//});
-
-
 	//old way use the longest one
 	vector<Point2f> shoulder_line_for_arm_longest;
 	vector<PointPostion> shoulder_line_for_arm_longest_map;
@@ -2599,8 +2384,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 		shoulder_line_for_arm_longest_map = possible_lines_for_arm_map.back();
 
 		shoulder_line_for_arm_longest = ConvertFromMap(point_collection, shoulder_line_for_arm_longest_map);
-		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
 			//line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], black, 5, 8, 0);
 
 			//THESIS
@@ -2613,8 +2397,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 		vector<Point2f> shoulder_line;
 		shoulder_line = ConvertFromMap(point_collection, possible_lines_map[k]);
 
-		for (int i = 0; i < shoulder_line.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line.size() - 1; i++) {
 			line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], colors[no_color], 5, 8, 0);
 
 			// THESIS
@@ -2635,8 +2418,7 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 		//Convert shoulder_line_map into shoulder_line
 		shoulder_line = ConvertFromMap(point_collection, shoulder_line_map);
 
-		for (int i = 0; i < shoulder_line_map.size() - 1; i++)
-		{
+		for (int i = 0; i < shoulder_line_map.size() - 1; i++) {
 			line(shoulder_detection_image, shoulder_line[i], shoulder_line[i + 1], color, 5, 8, 0);
 			
 			// THESIS
@@ -2651,10 +2433,9 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 		vector<Point2f> shoulder_line_for_arm_test;
 		vector<PointPostion> shoulder_line_for_arm_test_map;
 
-		for (int i = possible_lines_for_arm_map.size() - 1; i >= 0; i--)
-		{
-			if (abs(shoulder_line[0].x - possible_lines_for_arm_map[i].back().getFrom(point_collection).x) < abs(shoulder_line[0].x - shoulder_line[index_one_third].x))
-			{
+		for (int i = possible_lines_for_arm_map.size() - 1; i >= 0; i--) {
+			if (abs(shoulder_line[0].x - possible_lines_for_arm_map[i].back().getFrom(point_collection).x) 
+				< abs(shoulder_line[0].x - shoulder_line[index_one_third].x)) {
 				if (possible_lines_for_arm_map[i].back().getFrom(point_collection).y > shoulder_line[index_half].y) {
 					shoulder_line_for_arm_test_map = possible_lines_for_arm_map[i];
 					break;
@@ -2662,12 +2443,10 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 			}
 		}
 
-		if (!shoulder_line_for_arm_test_map.empty())
-		{
+		if (!shoulder_line_for_arm_test_map.empty()) {
 			shoulder_line_for_arm_test = ConvertFromMap(point_collection, shoulder_line_for_arm_test_map);
 
-			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++)
-			{
+			for (int i = 0; i < shoulder_line_for_arm_test.size() - 1; i++) {
 				line(shoulder_detection_image, shoulder_line_for_arm_test[i], shoulder_line_for_arm_test[i + 1], yellow, 5, 8, 0);
 
 				//THESIS
@@ -2680,12 +2459,6 @@ vector<Point2f> MYcppGui::Finding_ShoulderLines_From_PointCollection_v3(Mat shou
 
 		//Check if the longest arm line is overlap some points of shoulder lines
 		Refine_Overlap_ShoulderLine_And_ArmLine(shoulder_detection_image, shoulder_line, shoulder_line_for_arm_longest);
-
-		//Find more arm lines
-		//for (int i = 0; i < 3; i++) {
-		//	vector<Point2f> path_for_arm = findPath(i, j, point_collection, angle_for_arm);
-		//	shoulder_line
-		//}
 
 		//Add more point for fail detections
 		Improve_Fail_Detected_ShoulderLine(shoulder_detection_image, shoulder_line, head_upper_shoulder, angle);
@@ -2729,6 +2502,7 @@ void MYcppGui::Refine_Overlap_ShoulderLine_And_ArmLine(Mat &shoulder_detection_i
 							//Show up
 							for (int i = 0; i < shoulder_line_for_arm_longest.size() - 1; i++) {
 								line(shoulder_detection_image, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], green, 5, 8, 0);
+								
 								//Thesis
 								line(userInputFrame, shoulder_line_for_arm_longest[i], shoulder_line_for_arm_longest[i + 1], green, 5, 8, 0);
 							}
@@ -2783,7 +2557,6 @@ void MYcppGui::Improve_Fail_Detected_ShoulderLine(Mat &shoulder_detection_image,
 
 //type 0: shoulder - 1: arm - 2:neck
 vector<Point2f> MYcppGui::findPath(int index_line, int index, vector<vector<Point2f>> &point_collection, double angle, double epsilon, int type) {
-	//cout << index << " " << index_line << " " << point_collection.size() << endl;
 	if (index_line >= point_collection.size() - 1) {
 		vector<Point2f> result;
 		result.push_back(point_collection[index_line][index]);
@@ -2815,9 +2588,7 @@ vector<Point2f> MYcppGui::findPath(int index_line, int index, vector<vector<Poin
 		k = 2;
 	}
 
-	for (int i = point_collection[index_line + k].size() - 1; i >= 0; i--)		//Go inside out to choose the outter result
-		// I will take all later and pick the closest one to previous result
-	{
+	for (int i = point_collection[index_line + k].size() - 1; i >= 0; i--) {	 	//Go inside out to choose the outter result
 		Point2f current_point = point_collection[index_line][index];
 		Point2f next_point = point_collection[index_line + k][i];
 		//check angle
@@ -2837,7 +2608,6 @@ vector<Point2f> MYcppGui::findPath(int index_line, int index, vector<vector<Poin
 	}
 
 	//The case that last chosen point was missing because the next index_line 's size  == 0
-	//I'll refactor later
 	if (point_collection[index_line + k].size() == 0) {
 		tmp_new_point_line.push_back(point_collection[index_line][index]);
 
@@ -2903,7 +2673,7 @@ vector<PointPostion> MYcppGui::findPath_v2(int index_line, int index, vector<vec
 
 		Point2f next_point = point_collection[index_line + k][i];
 		//check angle
-		if (AngleDifference(Angle(current_point, next_point), angle) <= epsilon) { //used to 25
+		if (AngleDifference(Angle(current_point, next_point), angle) <= epsilon) {			//used to 25
 			if (EuclideanDistance(current_point, next_point) < checking_block * 1.5) {		//new condition
 				tmp_new_point_line = findPath_v2(index_line + k, i, point_collection, angle, epsilon, type, shoulderModel);
 			}
@@ -2919,7 +2689,6 @@ vector<PointPostion> MYcppGui::findPath_v2(int index_line, int index, vector<vec
 	}
 
 	//The case that last chosen point was missing because the next index_line 's size  == 0
-	//I'll refactor later
 	if (point_collection[index_line + k].size() == 0) {
 		tmp_new_point_line.push_back(PointPostion(index_line, index));
 
@@ -2929,14 +2698,14 @@ vector<PointPostion> MYcppGui::findPath_v2(int index_line, int index, vector<vec
 		}
 		tmp_new_point_line.clear();
 	}
+
 	return new_point_line;
 }
 
 vector<vector<PointPostion>> MYcppGui::findPath_new(int index_line, int index, vector<vector<Point2f>> &point_collection, double angle) {
 	if (index_line >= point_collection.size() - 1) {
 		vector<vector<PointPostion>> result;
-		for (int i = 0; i < result.size(); i++)
-		{
+		for (int i = 0; i < result.size(); i++) {
 			result[i].push_back(PointPostion(index_line, index));
 		}
 
@@ -2951,12 +2720,11 @@ vector<vector<PointPostion>> MYcppGui::findPath_new(int index_line, int index, v
 	if (point_collection[index_line + 1].size() == 0 && index_line + 2 < point_collection.size()) {
 		k = 2;
 	}
+
 	int max_tmp_new_point_lines = 0;
 	int max_new_point_lines = 0;
 
-	for (int i = point_collection[index_line + k].size() - 1; i >= 0; i--)		//Go inside out to choose the outter result
-		// I will take all later and pick the closest one to previous result
-	{
+	for (int i = point_collection[index_line + k].size() - 1; i >= 0; i--) {		//Go inside out to choose the outter result	
 		Point2f current_point = point_collection[index_line][index];
 		Point2f next_point = point_collection[index_line + k][i];
 		//check angle
@@ -2973,8 +2741,7 @@ vector<vector<PointPostion>> MYcppGui::findPath_new(int index_line, int index, v
 			max_tmp_new_point_lines = max(max_tmp_new_point_lines, (int)tmp_new_point_lines[j].size());
 		}
 
-		if (new_point_lines.empty() || max_tmp_new_point_lines == max_new_point_lines)		//Can change later
-		{
+		if (new_point_lines.empty() || max_tmp_new_point_lines == max_new_point_lines) {	//Can change later
 			//concatenate two vectors
 			new_point_lines.insert(new_point_lines.end(), tmp_new_point_lines.begin(), tmp_new_point_lines.end());
 			max_new_point_lines = max_tmp_new_point_lines;
@@ -2993,7 +2760,6 @@ vector<vector<PointPostion>> MYcppGui::findPath_new(int index_line, int index, v
 	}
 
 	//The case that last chosen point was missing because the next index_line 's size  == 0
-	//I'll refactor later
 	if (point_collection[index_line + k].size() == 0) {
 
 		//Add for all lines from next index_line
@@ -3010,7 +2776,6 @@ vector<vector<PointPostion>> MYcppGui::findPath_new(int index_line, int index, v
 		{
 			//concatenate two vectors
 			new_point_lines.insert(new_point_lines.end(), tmp_new_point_lines.begin(), tmp_new_point_lines.end());
-			//max_new_point_lines = max_tmp_new_point_lines;
 		}
 		else if (max_tmp_new_point_lines > max_new_point_lines) {				//Choose the longest lines
 			new_point_lines = tmp_new_point_lines;
@@ -3067,18 +2832,15 @@ Mat MYcppGui::StrongPreprocessing(Mat frame) {
 	return detected_edges;
 }
 
-void MYcppGui::collectColorShoulderFromInput(Mat &frame)
-{
+void MYcppGui::collectColorShoulderFromInput(Mat &frame) {
 	for (int k = 0; k < 2; k++) {	
-		for (int i = 0; i < userInput[k].size(); i+=5)
-		{
+		for (int i = 0; i < userInput[k].size(); i+=5) {
 			//Get color inside 25px point
 			int x = userInput[k][i].x;
 			int y = userInput[k][i].y + 18;
 			Vec3b color = frame.at<Vec3b>(Point2f(x, y));
 		
-			if (i == 0 && k == 0) 
-			{
+			if (i == 0 && k == 0) {
 				colorCollection_Shoulder.push_back(color);
 				continue;
 			}
@@ -3086,18 +2848,15 @@ void MYcppGui::collectColorShoulderFromInput(Mat &frame)
 			double minColourDistance = ColourDistance(color, colorCollection_Shoulder[0]);
 			//cout << minColourDistance << endl;
 
-			for (int j = 1; j < colorCollection_Shoulder.size(); j++)
-			{
+			for (int j = 1; j < colorCollection_Shoulder.size(); j++) {
 				double colourDistance = ColourDistance(color, colorCollection_Shoulder[j]);
-				//cout << ColourDistance(color, colorCollection_Shoulder[j]) << endl;
 				if (colourDistance < minColourDistance)
 					minColourDistance = colourDistance;
 			}
 
 			circle(frame, Point2f(x, y), 5, green, -1, 8);
 
-			if (minColourDistance > 20)
-			{
+			if (minColourDistance > 20) {
 				colorCollection_Shoulder.push_back(color);
 				circle(frame, Point2f(x, y), 5, blue, -1, 8);
 			}
@@ -3105,73 +2864,7 @@ void MYcppGui::collectColorShoulderFromInput(Mat &frame)
 	}
 }
 
-//void MYcppGui::collectColorShoulder_LAB()
-//{
-//	Mat LAB_frame;
-//	cvtColor(userInputFrame, LAB_frame, CV_BGR2Lab);
-//	for (int k = 0; k < 2; k++) {
-//		for (int i = 0; i < userInput[k].size(); i += 5)
-//		{
-//			//Get color inside 25px point
-//			int x = userInput[k][i].x;
-//			int y = userInput[k][i].y + 25;
-//
-//			Vec3b color = LAB_frame.at<Vec3b>(Point2f(x, y));
-//			//cout << (float)color[0] << ", " << (float)color[1] << ", " << (float)color[2] << endl;
-//			cout << (float)color[0] / 255 * 100 << ", " << (float)color[1] - 128 << ", " << (float)color[2] - 128 << endl;
-//			Vec3f color_LAB = Vec3f((float)color[0] / 255 * 100, (float)color[1] - 128, (float)color[2] - 128);
-//
-//			if (i == 0 && k == 0)
-//			{
-//				colorCollection_LAB.push_back(color_LAB);
-//				circle(userInputFrame, Point2f(x, y), 5, blue, -1, 8);
-//				continue;
-//			}
-//
-//			double minColourDistance = ColourDistance_LAB(color_LAB, colorCollection_LAB[0]);
-//			cout << minColourDistance << endl;
-//
-//			for (int j = 1; j < colorCollection_LAB.size(); j++)
-//			{
-//				double colourDistance = ColourDistance_LAB(color_LAB, colorCollection_LAB[j]);
-//				cout << ColourDistance_LAB(color_LAB, colorCollection_LAB[j]) << endl;
-//				if (colourDistance < minColourDistance)
-//					minColourDistance = colourDistance;
-//			}
-//
-//			circle(userInputFrame, Point2f(x, y), 5, green, -1, 8);
-//
-//			if (minColourDistance > 10)
-//			{
-//				cout << "Min: " << minColourDistance << endl;
-//				colorCollection_LAB.push_back(color_LAB);
-//				circle(userInputFrame, Point2f(x, y), 5, blue, -1, 8);
-//			}
-//
-//			cout << "-----------------" << endl;
-//
-//
-//		}
-//	}
-//}
-//double ColourDistance_LAB(Vec3f e1, Vec3f e2)
-//{
-//	double distance = sqrt((e1[1] - e2[1])*(e1[1] - e2[1]) + (e1[2] - e2[2])*(e1[2] - e2[2]));	//just skipp L, or I can put a bit L later
-//	return distance;
-//}
-//bool MYcppGui::IsMatchToColorCollectionInput_LAB(Vec3f color_LAB)
-//{
-//
-//	for (int i = 0; i < colorCollection_LAB.size(); ++i)
-//	{
-//		if (ColourDistance_LAB(color_LAB, colorCollection_LAB[i]) <= 10){
-//			return true;
-//		}
-//	}
-//	return false;
-//}
-double ColourDistance(Vec3b e1, Vec3b e2)
-{
+double ColourDistance(Vec3b e1, Vec3b e2) {
 	//0 - blue 
 	//1 - green
 	//2 - red
@@ -3184,11 +2877,9 @@ double ColourDistance(Vec3b e1, Vec3b e2)
 
 
 
-bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color)
-{
+bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color) {
 
-	for (int i = 0; i < colorCollection_Shoulder.size(); ++i)
-	{
+	for (int i = 0; i < colorCollection_Shoulder.size(); ++i) {
 		if (ColourDistance(color, colorCollection_Shoulder[i]) <= 30){
 			return true;
 		}
@@ -3196,10 +2887,8 @@ bool MYcppGui::IsMatchToColorCollectionInput(Vec3b color)
 	return false;
 }
 
-bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon)
-{
-	for (int i = 0; i < Collection.size(); ++i)
-	{
+bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon) {
+	for (int i = 0; i < Collection.size(); ++i) {
 		if (ColourDistance(color, Collection[i]) <= epsilon){
 			return true;
 		}
@@ -3207,15 +2896,12 @@ bool MYcppGui::IsMatchColor(Vec3b color, Vector<Vec3b> Collection, int epsilon)
 	return false;
 }
 
-//
-
 double EuclideanDistance(Point2f p1, Point2f p2) {
 	return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y)); 
 }
 
 
-double Angle(Point2f start, Point2f end)
-{
+double Angle(Point2f start, Point2f end) {
 	const double Rad2Deg = 180.0 / CV_PI;
 	const double Deg2Rad = CV_PI / 180.0;
 	return atan2(start.y - end.y, end.x - start.x) * Rad2Deg;
@@ -3229,8 +2915,7 @@ double AngleDifference(double angleA, double angleB) {
 }
 
 
-float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2)
-{
+float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2) {
 	//equation of a line from two points
 	//y - y1 = (y2 - y1) / (x2 - x1) * (x - x1)
 	// => y = (y2 - y1) / (x2 - x1) * (x - x1) + y1 
@@ -3243,8 +2928,7 @@ float FindY_LineEquationThroughTwoPoint(float x_, Point2f p1, Point2f p2)
 	return y_;
 }
 
-Point2f mirror(Point2f p, Point2f point0, Point2f point1)
-{
+Point2f mirror(Point2f p, Point2f point0, Point2f point1) {
 	double x0 = point0.x;
 	double y0 = point0.y;
 	double x1 = point1.x;
@@ -3279,8 +2963,7 @@ bool isSegmentsIntersecting(Point2f& p1, Point2f& p2, Point2f& q1, Point2f& q2) 
 
 // Finds the intersection of two lines, or returns false.
 // The lines are defined by (o1, p1) and (o2, p2).
-bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r)
-{
+bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r) {
 	Point2f x = o2 - o1;
 	Point2f d1 = p1 - o1;
 	Point2f d2 = p2 - o2;
@@ -3297,7 +2980,7 @@ bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r)
 Mat MYcppGui::GetThumnail(string fileName) {
 	
 	VideoCapture capture(fileName);
-	if (!capture.isOpened())  // if not success, exit program
+	if (!capture.isOpened())			// if not success, exit program
 	{
 		cout << "Cannot open the video file" << endl;
 		return Mat();;
@@ -3331,8 +3014,7 @@ void getLine(Point2f &p1, Point2f &p2, double &a, double &b, double &c)
 	c = p1.x * p2.y - p2.x * p1.y;
 }
 
-double DistanceFromPointToLine(Point2f &p, Point2f &p2, Point2f &p3)
-{
+double DistanceFromPointToLine(Point2f &p, Point2f &p2, Point2f &p3) {
 	double a, b, c;
 	getLine(p2, p3, a, b, c);
 	return abs(a * p.x + b * p.y + c) / sqrt(a * a + b * b);
